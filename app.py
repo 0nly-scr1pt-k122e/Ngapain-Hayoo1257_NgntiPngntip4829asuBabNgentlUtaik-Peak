@@ -8204,9 +8204,18 @@ def index():
 def webhook():
     try:
         data = request.get_json()
-        update = Update.de_json(data, None)
         
-        asyncio.run(application.process_update(update))
+        if data and "message" in data:
+            chat_id = data["message"]["chat"]["id"]
+            text = data["message"].get("text", "")
+            
+            # Kirim balasan pake requests (langsung, ga pake asyncio)
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": f"Bot Mikasa Active!!"
+            }
+            requests.post(url, json=payload)
         
         return {"status": "ok"}, 200
     except Exception as e:
