@@ -8172,58 +8172,136 @@ def webhook():
         
         logger.info(f"Webhook: {data.get('message', {}).get('text', 'no text')}")
         
-        update = Update.de_json(data, None)
-        
-        bot = MikasaBot(BOT_TOKEN)
-        application = Application.builder().token(BOT_TOKEN).build()
-        
-        application.add_handler(CommandHandler("start", bot.start))
-        application.add_handler(CommandHandler("register", bot.register))
-        application.add_handler(CommandHandler("verify", bot.verify))
-        application.add_handler(CommandHandler("spamotp", bot.cmd_spam_otp))
-        application.add_handler(CommandHandler("spamcall", bot.cmd_spam_call))
-        application.add_handler(CommandHandler("spampair", bot.cmd_spam_pair))
-        application.add_handler(CommandHandler("spamrepwa", bot.cmd_spam_repwa))
-        application.add_handler(CommandHandler("spamngl", bot.cmd_spam_ngl))
-        application.add_handler(CommandHandler("osint", bot.cmd_osint))
-        application.add_handler(CommandHandler("osintnomor", bot.cmd_osint_nomor))
-        application.add_handler(CommandHandler("osintusername", bot.cmd_osint_username))
-        application.add_handler(CommandHandler("osintip", bot.cmd_osint_ip))
-        application.add_handler(CommandHandler("osintdomain", bot.cmd_osint_domain))
-        application.add_handler(CommandHandler("iptracker", bot.cmd_ip_tracker))
-        application.add_handler(CommandHandler("portscan", bot.cmd_port_scan))
-        application.add_handler(CommandHandler("nikparse", bot.cmd_nik_parse))
-        application.add_handler(CommandHandler("cekkodepos", bot.cmd_cek_kodepos))
-        application.add_handler(CommandHandler("ceknpsn", bot.cmd_cek_npsn))
-        application.add_handler(CommandHandler("ffuid", bot.cmd_ff_uid))
-        application.add_handler(CommandHandler("cekroblox", bot.cmd_cek_roblox))
-        application.add_handler(CommandHandler("spamgmail", bot.cmd_spam_gmail))
-        application.add_handler(CommandHandler("cekdataguru", bot.cmd_cek_dataguru))
-        application.add_handler(CommandHandler("spambottele", bot.cmd_spam_bottele))
-        application.add_handler(CommandHandler("cekimei", bot.cmd_cek_imei))
-        application.add_handler(CommandHandler("cekphising", bot.cmd_cek_phising))
-        application.add_handler(CommandHandler("webrecon", bot.cmd_web_recon))
-        application.add_handler(CommandHandler("laporbug", bot.cmd_lapor_bug))
-        application.add_handler(CommandHandler("fototourl", bot.cmd_foto_tourl))
-        application.add_handler(CommandHandler("filetourl", bot.cmd_file_tourl))
-        application.add_handler(CommandHandler("killbottele", bot.cmd_kill_bottele))
-        application.add_handler(CommandHandler("cekinfobot", bot.cmd_cek_infobot))
-        application.add_handler(CommandHandler("shortenerurl", bot.cmd_shortener_url))
-        application.add_handler(CommandHandler("hackstatuswa", bot.cmd_hack_status_wa))
-        application.add_handler(CommandHandler("cekresi", bot.cmd_cek_resi))
-        application.add_handler(CommandHandler("getidchatbot", bot.cmd_get_id_chat))
-        application.add_handler(CallbackQueryHandler(bot.button_callback))
-        application.add_handler(
-            MessageHandler(
-                filters.DOCUMENT | filters.PHOTO | filters.VIDEO,
-                bot.handle_document
-            )
-        )
-        
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(application.process_update(update))
-        loop.close()
+        if "message" in data:
+            chat_id = data["message"]["chat"]["id"]
+            text = data["message"].get("text", "")
+            
+            bot = MikasaBot(BOT_TOKEN)
+            
+            update = Update.de_json(data, None)
+            context = type('Context', (), {
+                'args': [],
+                'user_data': {},
+                'bot': type('Bot', (), {
+                    'send_message': lambda self, chat_id, text, parse_mode=None: requests.post(
+                        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                        json={"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
+                    )
+                })()
+            })()
+            
+            if text and text.startswith("/"):
+                parts = text.split()
+                command = parts[0].lower()
+                context.args = parts[1:] if len(parts) > 1 else []
+            
+            if text == "/start":
+                bot.start(update, context)
+            elif text.startswith("/register"):
+                bot.register(update, context)
+            elif text.startswith("/verify"):
+                bot.verify(update, context)
+            elif text.startswith("/spamotp"):
+                bot.cmd_spam_otp(update, context)
+            elif text.startswith("/spamcall"):
+                bot.cmd_spam_call(update, context)
+            elif text.startswith("/spampair"):
+                bot.cmd_spam_pair(update, context)
+            elif text.startswith("/spamrepwa"):
+                bot.cmd_spam_repwa(update, context)
+            elif text.startswith("/spamngl"):
+                bot.cmd_spam_ngl(update, context)
+            elif text == "/osint":
+                bot.cmd_osint(update, context)
+            elif text.startswith("/osintnomor"):
+                bot.cmd_osint_nomor(update, context)
+            elif text.startswith("/osintusername"):
+                bot.cmd_osint_username(update, context)
+            elif text.startswith("/osintip"):
+                bot.cmd_osint_ip(update, context)
+            elif text.startswith("/osintdomain"):
+                bot.cmd_osint_domain(update, context)
+            elif text.startswith("/iptracker"):
+                bot.cmd_ip_tracker(update, context)
+            elif text.startswith("/portscan"):
+                bot.cmd_port_scan(update, context)
+            elif text.startswith("/nikparse"):
+                bot.cmd_nik_parse(update, context)
+            elif text.startswith("/cekkodepos"):
+                bot.cmd_cek_kodepos(update, context)
+            elif text.startswith("/ceknpsn"):
+                bot.cmd_cek_npsn(update, context)
+            elif text.startswith("/ffuid"):
+                bot.cmd_ff_uid(update, context)
+            elif text.startswith("/cekroblox"):
+                bot.cmd_cek_roblox(update, context)
+            elif text.startswith("/spamgmail"):
+                bot.cmd_spam_gmail(update, context)
+            elif text.startswith("/cekdataguru"):
+                bot.cmd_cek_dataguru(update, context)
+            elif text.startswith("/spambottele"):
+                bot.cmd_spam_bottele(update, context)
+            elif text.startswith("/cekimei"):
+                bot.cmd_cek_imei(update, context)
+            elif text.startswith("/cekphising"):
+                bot.cmd_cek_phising(update, context)
+            elif text.startswith("/webrecon"):
+                bot.cmd_web_recon(update, context)
+            elif text == "/laporbug":
+                bot.cmd_lapor_bug(update, context)
+            elif text == "/fototourl":
+                bot.cmd_foto_tourl(update, context)
+            elif text == "/filetourl":
+                bot.cmd_file_tourl(update, context)
+            elif text.startswith("/killbottele"):
+                bot.cmd_kill_bottele(update, context)
+            elif text.startswith("/cekinfobot"):
+                bot.cmd_cek_infobot(update, context)
+            elif text.startswith("/shortenerurl"):
+                bot.cmd_shortener_url(update, context)
+            elif text == "/hackstatuswa":
+                bot.cmd_hack_status_wa(update, context)
+            elif text.startswith("/cekresi"):
+                bot.cmd_cek_resi(update, context)
+            elif text.startswith("/getidchatbot"):
+                bot.cmd_get_id_chat(update, context)
+            elif text == "/menuall":
+                menu = (
+                    "📋 *SEMUA MENU BOT*\n\n"
+                    "/spamotp - Spam OTP\n"
+                    "/spamcall - Spam Call\n"
+                    "/spampair - Spam Pairing\n"
+                    "/spamrepwa - Spam Report WA\n"
+                    "/spamngl - Spam NGL\n"
+                    "/spamgmail - Spam Email\n"
+                    "/osint - OSINT Tools\n"
+                    "/osintnomor - OSINT Nomor\n"
+                    "/osintusername - OSINT Username\n"
+                    "/osintip - OSINT IP\n"
+                    "/osintdomain - OSINT Domain\n"
+                    "/iptracker - IP Tracker\n"
+                    "/portscan - Port Scanner\n"
+                    "/nikparse - NIK Parse\n"
+                    "/cekkodepos - Cek Kode Pos\n"
+                    "/ceknpsn - Cek NPSN\n"
+                    "/ffuid - FF UID Checker\n"
+                    "/cekroblox - Roblox Checker\n"
+                    "/cekdataguru - Cek Data Guru\n"
+                    "/cekimei - Cek IMEI\n"
+                    "/cekphising - Cek Link Phising\n"
+                    "/webrecon - Web Recon\n"
+                    "/fototourl - Foto/File to URL\n"
+                    "/shortenerurl - Shortener URL\n"
+                    "/cekresi - Cek Resi\n"
+                    "/killbottele - Kill Bot Telegram\n"
+                    "/cekinfobot - Cek Info Bot\n"
+                    "/getidchatbot - Get ID Chat\n"
+                    "/hackstatuswa - Hack Status WA\n"
+                    "/spambottele - Spam Bot Telegram\n"
+                    "/laporbug - Lapor Bug\n"
+                    "/filetourl - File to URL"
+                )
+                update.message.reply_text(menu, parse_mode="Markdown")
         
         logger.info("Update processed")
         return {"status": "ok"}, 200
