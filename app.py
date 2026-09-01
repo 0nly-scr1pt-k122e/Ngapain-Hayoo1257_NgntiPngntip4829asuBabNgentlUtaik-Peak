@@ -8158,17 +8158,15 @@ import json
 app = Flask(__name__)
 BOT_TOKEN = "8685515038:AAEW_N4J98oYLIMpP71Fc9W99ha7nR4mJAs"
 
-application = None
-bot = None
-
-def init_bot():
-    global application, bot
-    
-    if application is None:
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    try:
+        data = request.get_json()
+        update = Update.de_json(data, None)
+        
         bot = MikasaBot(BOT_TOKEN)
         application = Application.builder().token(BOT_TOKEN).build()
         
-        # Register semua handler
         application.add_handler(CommandHandler("start", bot.start))
         application.add_handler(CommandHandler("register", bot.register))
         application.add_handler(CommandHandler("verify", bot.verify))
@@ -8207,29 +8205,15 @@ def init_bot():
         application.add_handler(CallbackQueryHandler(bot.button_callback))
         application.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO | filters.VIDEO, bot.handle_document))
         
-
-@app.route("/")
-def index():
-    return "Bot Mikasa Active On Telegram!", 200
-
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    global application
-    
-    try:
-        init_bot()
-        
-        data = request.get_json()
-        update = Update.de_json(data, None)
         asyncio.run(application.process_update(update))
         
         return {"status": "ok"}, 200
     except Exception as e:
         return {"status": "error", "error": str(e)}, 200
 
-@app.route("/keepalive", methods=["GET"])
-def keepalive():
-    return "Alive!", 200
+@app.route("/")
+def index():
+    return "Bot is running!", 200
 
 if __name__ == "__main__":
     app.run()
