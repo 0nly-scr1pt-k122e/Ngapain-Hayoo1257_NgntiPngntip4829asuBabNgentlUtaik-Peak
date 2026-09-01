@@ -8206,12 +8206,12 @@ def webhook():
         data = request.get_json()
         update = Update.de_json(data, None)
         
-        application.process_update(update)
+        asyncio.run(application.process_update(update))
         
         return {"status": "ok"}, 200
     except Exception as e:
         return {"status": "error", "error": str(e)}, 200
-
+        
 @app.route("/keepalive", methods=["GET"])
 def keepalive():
     return "Alive!", 200
