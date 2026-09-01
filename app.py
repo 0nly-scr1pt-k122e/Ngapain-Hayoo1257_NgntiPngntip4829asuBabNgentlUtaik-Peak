@@ -6504,66 +6504,66 @@ def upload_to_catbox(file_path):
         return None
 
 class MikasaBot:
-   async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    state = context.user_data.get('state', '')
+    def handle_document(self, update, context):
+        user_id = str(update.effective_user.id)
+        state = context.user_data.get('state', '')
 
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    if state in ['upload_photo', 'upload_file']:
-        document = update.message.document or update.message.photo or update.message.video
-
-        if not document:
-            await update.message.reply_text("❌ File tidak ditemukan!")
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
             return
 
-        file = await document.get_file()
-        file_size = file.file_size / (1024 * 1024)
+        if state in ['upload_photo', 'upload_file']:
+            document = update.message.document or update.message.photo or update.message.video
 
-        if file_size > 200 and state == 'upload_photo':
-            await update.message.reply_text("❌ File terlalu besar! Maksimal 200MB")
-            return
+            if not document:
+                update.message.reply_text("❌ File tidak ditemukan!")
+                return
 
-        if file_size > 10240 and state == 'upload_file':
-            await update.message.reply_text("❌ File terlalu besar! Maksimal 10GB")
-            return
+            file = document.get_file()
+            file_size = file.file_size / (1024 * 1024)
 
-        await update.message.reply_text(format_loading("Mengupload File"))
+            if file_size > 200 and state == 'upload_photo':
+                update.message.reply_text("❌ File terlalu besar! Maksimal 200MB")
+                return
 
-        try:
-            file_path = f"temp_{user_id}_{int(time.time())}"
-            await file.download_to_drive(file_path)
+            if file_size > 10240 and state == 'upload_file':
+                update.message.reply_text("❌ File terlalu besar! Maksimal 10GB")
+                return
 
-            url = upload_to_catbox(file_path)
-            os.remove(file_path)
+            update.message.reply_text(format_loading("Mengupload File"))
 
-            if url:
-                await update.message.reply_text(
-                    format_success(
-                        "𝐔𝐏𝐋𝐎𝐀𝐃 𝐁𝐄𝐑𝐇𝐀𝐒𝐈𝐋✅",
-                        f"📎 File: {document.file_name or 'file'}\n"
-                        f"📊 Size: {file_size:.2f} MB\n"
-                        f"🔗 URL: {url}"
-                    ),
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            else:
-                await update.message.reply_text("❌ Gagal upload file!")
+            try:
+                file_path = f"temp_{user_id}_{int(time.time())}"
+                file.download_to_drive(file_path)
 
-            context.user_data['state'] = ''
+                url = upload_to_catbox(file_path)
+                os.remove(file_path)
 
-        except Exception as e:
-            await update.message.reply_text(format_error(str(e)))
+                if url:
+                    update.message.reply_text(
+                        format_success(
+                            "𝐔𝐏𝐋𝐎𝐀𝐃 𝐁𝐄𝐑𝐇𝐀𝐒𝐈𝐋✅",
+                            f"📎 File: {document.file_name or 'file'}\n"
+                            f"📊 Size: {file_size:.2f} MB\n"
+                            f"🔗 URL: {url}"
+                        ),
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                else:
+                    update.message.reply_text("❌ Gagal upload file!")
 
-   def __init__(self, token):
+                context.user_data['state'] = ''
+
+            except Exception as e:
+                update.message.reply_text(format_error(str(e)))
+
+    def __init__(self, token):
         self.token = token
         self.app = None
         self.users = load_users()
         self.user_data = {}
 
-   async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    def start(self, update, context):
         user_id = str(update.effective_user.id)
         username = update.effective_user.username or "Unknown"
         first_name = update.effective_user.first_name or "User"
@@ -6572,7 +6572,7 @@ class MikasaBot:
         status, user_data = cek_uid(uid)
 
         if status is None:
-            await update.message.reply_text(
+            update.message.reply_text(
                 f"❌ *Gagal terhubung ke server lisensi.*"
             )
             return
@@ -6580,62 +6580,62 @@ class MikasaBot:
         if user_id in self.users:
             user_data_local = self.users[user_id]
             if user_data_local.get('status') == 'active':
-                await self.send_welcome(update, context, first_name)
+                self.send_welcome(update, context, first_name)
                 return
             else:
-                await update.message.reply_text(
+                update.message.reply_text(
                     f"⏳ *Akun Belum Aktif*\n\n"
                     f"👤 Nama: {user_data_local.get('nama', 'User')}\n\n"
                     f"Menunggu verifikasi dari admin."
                 )
                 return
 
-        await update.message.reply_text(
+        update.message.reply_text(
             f"🔐 *REGISTRASI DIPERLUKAN*\n\n"
             f"Gunakan: `/register nama_anda`\n"
             f"Contoh: `/register Rullzzz_06`"
         )
         context.user_data['state'] = 'waiting_register'
 
-   async def send_welcome(self, update: Update, context: ContextTypes.DEFAULT_TYPE, name):
-    keyboard = [
-        [InlineKeyboardButton("〔 1 〕𝐒𝐏𝐀𝐌 𝐌𝐄𝐍𝐔", callback_data="menu_spam")],
-        [InlineKeyboardButton("〔 2 〕𝐎𝐒𝐈𝐍𝐓 & 𝐓𝐀𝐑𝐂𝐊𝐄𝐑", callback_data="menu_osint")],
-        [InlineKeyboardButton("〔 3 〕𝐔𝐓𝐈𝐋𝐈𝐓𝐘", callback_data="menu_utility")],
-        [InlineKeyboardButton("〔 4 〕𝐌𝐄𝐍𝐔 𝐀𝐋𝐋", callback_data="menu_all")],
-        [InlineKeyboardButton("〔 5 〕𝐂𝐋𝐎𝐒𝐄", callback_data="menu_close")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    def send_welcome(self, update, context, name):
+        keyboard = [
+            [InlineKeyboardButton("〔 1 〕𝐒𝐏𝐀𝐌 𝐌𝐄𝐍𝐔", callback_data="menu_spam")],
+            [InlineKeyboardButton("〔 2 〕𝐎𝐒𝐈𝐍𝐓 & 𝐓𝐀𝐑𝐂𝐊𝐄𝐑", callback_data="menu_osint")],
+            [InlineKeyboardButton("〔 3 〕𝐔𝐓𝐈𝐋𝐈𝐓𝐘", callback_data="menu_utility")],
+            [InlineKeyboardButton("〔 4 〕𝐌𝐄𝐍𝐔 𝐀𝐋𝐋", callback_data="menu_all")],
+            [InlineKeyboardButton("〔 5 〕𝐂𝐋𝐎𝐒𝐄", callback_data="menu_close")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    caption = (
-        f"𝙈𝙄𝙆𝘼𝙎𝘼 𝘽𝙊𝙏 𝙈𝘿\n"
-        f"𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-        f"𝙷𝚊𝚕𝚘 {name}! 𝙱𝚘𝚝 𝚒𝚗𝚒 𝚍𝚒 𝙱𝚞𝚊𝚝 𝙾𝚕𝚎𝚑"
-        f"𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔, 𝙳𝚊𝚗 𝚂𝚒𝚕𝚊𝚑𝚔𝚊𝚗 𝙼𝚎𝚖𝚒𝚕𝚒𝚑 𝐊𝐚𝐭𝐞𝐠𝐨𝐫𝐲"
-        f"𝙳𝚒 𝙱𝚊𝚠𝚊𝚑 𝚒𝚗𝚒 😈👇"
-    )
-
-    try:
-        await update.message.reply_photo(
-            photo=BANNER_URL,
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode=ParseMode.MARKDOWN
-        )
-    except:
-        await update.message.reply_text(
-            caption,
-            reply_markup=reply_markup,
-            parse_mode=ParseMode.MARKDOWN
+        caption = (
+            f"𝙈𝙄𝙆𝘼𝙎𝘼 𝘽𝙊𝙏 𝙈𝘿\n"
+            f"𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+            f"𝙷𝚊𝚕𝚘 {name}! 𝙱𝚘𝚝 𝚒𝚗𝚒 𝚍𝚒 𝙱𝚞𝚊𝚝 𝙾𝚕𝚎𝚑"
+            f"𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔, 𝙳𝚊𝚗 𝚂𝚒𝚕𝚊𝚑𝚔𝚊𝚗 𝙼𝚎𝚖𝚒𝚕𝚒𝚑 𝐊𝐚𝐭𝐞𝐠𝐨𝐫𝐲"
+            f"𝙳𝚒 𝙱𝚊𝚠𝚊𝚑 𝚒𝚗𝚒 😈👇"
         )
 
-   async def register(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            update.message.reply_photo(
+                photo=BANNER_URL,
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except:
+            update.message.reply_text(
+                caption,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+    def register(self, update, context):
         user_id = str(update.effective_user.id)
         username = update.effective_user.username or "Unknown"
 
         args = context.args
         if not args:
-            await update.message.reply_text(
+            update.message.reply_text(
                 f"❌ *Format Salah!*\n\n"
                 f"Gunakan: `/register nama_anda`"
             )
@@ -6644,17 +6644,17 @@ class MikasaBot:
         nama = ' '.join(args).strip()
 
         if len(nama) < 3:
-            await update.message.reply_text("❌ Nama minimal 3 karakter!")
+            update.message.reply_text("❌ Nama minimal 3 karakter!")
             return
         if len(nama) > 30:
-            await update.message.reply_text("❌ Nama maksimal 30 karakter!")
+            update.message.reply_text("❌ Nama maksimal 30 karakter!")
             return
         if not re.match(r'^[a-zA-Z0-9_.\s]+$', nama):
-            await update.message.reply_text("❌ Nama hanya boleh huruf, angka, underscore, titik, dan spasi!")
+            update.message.reply_text("❌ Nama hanya boleh huruf, angka, underscore, titik, dan spasi!")
             return
 
         if user_id in self.users:
-            await update.message.reply_text(
+            update.message.reply_text(
                 f"⚠️ *Kamu sudah terdaftar!*\n\n"
                 f"Status: {'Aktif' if self.users[user_id].get('status') == 'active' else 'Pending'}"
             )
@@ -6671,7 +6671,7 @@ class MikasaBot:
         }
         save_users(self.users)
 
-        await self.notify_admin(
+        self.notify_admin(
             f"🔑 *REGISTRASI USER BARU*\n\n"
             f"🆔 User ID: `{user_id}`\n"
             f"👤 Username: @{username}\n"
@@ -6681,22 +6681,22 @@ class MikasaBot:
             f"Verifikasi: `/verify {user_id}`"
         )
 
-        await update.message.reply_text(
+        update.message.reply_text(
             f"✅ *Registrasi Berhasil!*\n\n"
             f"👤 Nama: {nama}\n"
             f"⏳ Menunggu Verifikasi Admin"
         )
 
-   async def verify(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    def verify(self, update, context):
         user_id = str(update.effective_user.id)
 
         if int(user_id) != ADMIN_ID:
-            await update.message.reply_text("❌ *Akses Ditolak!* Hanya admin.")
+            update.message.reply_text("❌ *Akses Ditolak!* Hanya admin.")
             return
 
         args = context.args
         if not args:
-            await update.message.reply_text(
+            update.message.reply_text(
                 f"❌ *Format Salah!*\n\n"
                 f"Gunakan: `/verify user_id`"
             )
@@ -6705,20 +6705,20 @@ class MikasaBot:
         target_id = args[0].strip()
 
         if target_id not in self.users:
-            await update.message.reply_text(f"❌ User ID `{target_id}` tidak ditemukan!")
+            update.message.reply_text(f"❌ User ID `{target_id}` tidak ditemukan!")
             return
 
         self.users[target_id]['status'] = 'active'
         save_users(self.users)
 
-        await update.message.reply_text(
+        update.message.reply_text(
             f"✅ *User Berhasil Diverifikasi!*\n\n"
             f"🆔 ID: `{target_id}`\n"
             f"👤 Nama: {self.users[target_id].get('nama', 'Unknown')}"
         )
 
         try:
-            await context.bot.send_message(
+            context.bot.send_message(
                 chat_id=int(target_id),
                 text=f"✅ *Akun Diverifikasi!*\n\n"
                      f"Gunakan /start untuk memulai."
@@ -6726,7 +6726,7 @@ class MikasaBot:
         except:
             pass
 
-   async def notify_admin(self, message, parse_mode="Markdown"):
+    def notify_admin(self, message, parse_mode="Markdown"):
         try:
             url = f"https://api.telegram.org/bot{self.token}/sendMessage"
             payload = {"chat_id": ADMIN_ID, "text": message, "parse_mode": parse_mode}
@@ -6734,7 +6734,7 @@ class MikasaBot:
         except:
             pass
 
-   def is_verified(self, user_id):
+    def is_verified(self, user_id):
         user_id = str(user_id)
         if user_id not in self.users:
             return False
@@ -6742,15 +6742,15 @@ class MikasaBot:
 
     # ===================== COMMAND HANDLERS =====================
 
-   async def cmd_spam_otp(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    def cmd_spam_otp(self, update, context):
         user_id = str(update.effective_user.id)
         if not self.is_verified(user_id):
-            await update.message.reply_text("❌ *Akses Ditolak!*")
+            update.message.reply_text("❌ *Akses Ditolak!*")
             return
 
         args = context.args
         if not args:
-            await update.message.reply_photo(
+            update.message.reply_photo(
                 photo=SPAM_OTP_IMG,
                 caption=(
                     f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐎𝐓𝐏\n"
@@ -6770,7 +6770,7 @@ class MikasaBot:
         elif nomor.startswith('+62'):
             nomor = '0' + nomor[3:]
 
-        await update.message.reply_text(format_loading("Mengirim Spam OTP"))
+        update.message.reply_text(format_loading("Mengirim Spam OTP"))
 
         try:
             results = run_spam_otp(nomor)
@@ -6778,7 +6778,7 @@ class MikasaBot:
             failed = len(results) - success
 
             detail = "\n".join(results)
-            await update.message.reply_text(
+            update.message.reply_text(
                 format_success(
                     "𝐒𝐏𝐀𝐌 𝐎𝐓𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
                     "KETIK /start FOR BACK\n",
@@ -6786,221 +6786,221 @@ class MikasaBot:
                 parse_mode=ParseMode.MARKDOWN
             )
         except Exception as e:
-            await update.message.reply_text(format_error(str(e)))
+            update.message.reply_text(format_error(str(e)))
 
-   async def cmd_spam_call(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐂𝐀𝐋𝐋\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/spamcall 62xxxxxxxxx"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    nomor = args[0].strip()
-    if not nomor.startswith('62'):
-        await update.message.reply_text("❌ Nomor harus diawali 62!")
-        return
-
-    await update.message.reply_text(format_loading("Mengirim Spam Call"))
-
-    try:
-        success = run_spam_call(nomor)
-        await update.message.reply_text(
-            format_success(
-                "𝐒𝐏𝐀𝐌 𝐂𝐀𝐋𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                "KETIK /start FOR BACK",             
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await query.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    data = query.data
-
-    if data == "menu_spam":
-        keyboard = [
-            [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        caption = (
-            f" KATEGORI SPAM\n\n"
-            f"╭───〔 1 〕───╮\n"
-            f"│ 𝙎𝙋𝘼𝙈 𝙈𝙀𝙉𝙐 :\n"
-            f"│ /spamotp\n"
-            f"│ /spamcall\n"
-            f"│ /spampair\n"
-            f"│ /spamrepwa\n"
-            f"│ /spamngl\n"
-            f"│ /spamgmail\n"
-            f"╰────────────────────────────╯\n\n"
-            f"📌 *Cara penggunaan:*\n"
-            f"Ketik command di atas dengan nomor target\n"
-            f"Contoh: /spamotp 628xxxxxxxxx"
-        )
-        await query.message.edit_caption(
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-    elif data == "menu_osint":
-        keyboard = [
-            [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        caption = (
-            f" KATEGORI OSINT & TRACKING\n\n"
-            f"╭───〔 2 〕───╮\n"
-            f"│ 𝙊𝙎𝙄𝙉𝙏 & 𝙏𝙍𝘼𝘾𝙆𝙄𝙉𝙂 :\n"
-            f"│ /osintnomor\n"
-            f"│ /osintusername\n"
-            f"│ /osintip\n"
-            f"│ /osintdomain\n"
-            f"│ /iptracker\n"
-            f"│ /portscan\n"
-            f"│ /nikparse\n"
-            f"╰────────────────────────────╯\n\n"
-            f"📌 *Cara penggunaan:*\n"
-            f"Ketik command di atas dengan target\n"
-            f"Contoh: /osintnomor +628xxxxxxxxx"
-        )
-        await query.message.edit_caption(
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-    elif data == "menu_utility":
-        keyboard = [
-            [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        caption = (
-            f" KATEGORI UTILITY\n\n"
-            f"╭───〔 3 〕───╮\n"
-            f"│ 𝙐𝙏𝙄𝙇𝙄𝙏𝙔 𝙈𝙀𝙉𝙐 :\n"
-            f"│ /cekkodepos\n"
-            f"│ /ceknpsn\n"
-            f"│ /ffuid\n"
-            f"│ /cekroblox\n"
-            f"│ /cekdataguru\n"
-            f"│ /cekimei\n"
-            f"│ /cekphising\n"
-            f"│ /webrecon\n"
-            f"│ /fototourl\n"
-            f"│ /filetourl\n"
-            f"│ /shortenerurl\n"
-            f"│ /cekresi\n"
-            f"╰────────────────────────────╯\n\n"
-            f"📌 *Cara penggunaan:*\n"
-            f"Ketik command di atas dengan target\n"
-            f"Contoh: /cekkodepos 16112"
-        )
-        await query.message.edit_caption(
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-    elif data == "menu_all":
-        keyboard = [
-            [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        caption = (
-            f" 𝐌𝐄𝐍𝐔 𝐀𝐋𝐋 𝐌𝐈𝐊𝐀𝐒𝐀\n\n"
-            f"╭───〔 ♛♛ 〕───╮\n"
-            f"│ 𝙈𝙀𝙉𝙐 𝘽𝙊𝙏 𝙈𝙄𝙆𝘼𝙎𝘼🥘 :\n"
-            f"│ /spamotp\n"
-            f"│ /spamcall\n"
-            f"│ /spampair\n"
-            f"│ /spamrepwa\n"
-            f"│ /spamngl\n"
-            f"│ /osint\n"
-            f"│ /iptracker\n"
-            f"│ /portscan\n"
-            f"│ /nikparse\n"
-            f"│ /cekkodepos\n"
-            f"│ /ceknpsn\n"
-            f"│ /ffuid\n"
-            f"│ /cekroblox\n"
-            f"│ /spamgmail\n"
-            f"│ /cekdataguru\n"
-            f"│ /spambottele\n"
-            f"│ /cekimei\n"
-            f"│ /cekphising\n"
-            f"│ /webrecon\n"
-            f"│ /laporbug\n"
-            f"│ /fototourl\n"
-            f"│ /filetourl\n"
-            f"│ /killbottele\n"
-            f"│ /cekinfobot\n"
-            f"│ /shortenerurl\n"
-            f"│ /hackstatuswa\n"
-            f"│ /cekresi\n"
-            f"│ /getidchatbot\n"
-            f"╰────────────────────────────╯\n\n"
-            f"📌 *Cara penggunaan:*\n"
-            f"Ketik command di atas dengan format yang sesuai"
-        )
-        await query.message.edit_caption(
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-    elif data == "menu_back":
-        keyboard = [
-        [InlineKeyboardButton("〔 1 〕𝐒𝐏𝐀𝐌 𝐌𝐄𝐍𝐔", callback_data="menu_spam")],
-        [InlineKeyboardButton("〔 2 〕𝐎𝐒𝐈𝐍𝐓 & 𝐓𝐀𝐑𝐂𝐊𝐄𝐑", callback_data="menu_osint")],
-        [InlineKeyboardButton("〔 3 〕𝐔𝐓𝐈𝐋𝐈𝐓𝐘", callback_data="menu_utility")],
-        [InlineKeyboardButton("〔 4 〕𝐌𝐄𝐍𝐔 𝐀𝐋𝐋", callback_data="menu_all")],
-        [InlineKeyboardButton("〔 5 〕𝐂𝐋𝐎𝐒𝐄", callback_data="menu_close")],
-    ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        caption = (
-            f"𝙈𝙄𝙆𝘼𝙎𝘼 𝘽𝙊𝙏 𝙈𝘿\n"
-            f"𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-            f"𝙿𝚒𝚕𝚒𝚑 𝚔𝚊𝚝𝚎𝚐𝚘𝚛𝚒 𝚍𝚒 𝚋𝚊𝚠𝚊𝚑 👇"
-        )
-        await query.message.edit_caption(
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-    elif data == "menu_close":
-        await query.message.delete()
-
-   async def cmd_spam_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    def cmd_spam_call(self, update, context):
         user_id = str(update.effective_user.id)
         if not self.is_verified(user_id):
-            await update.message.reply_text("❌ *Akses Ditolak!*")
+            update.message.reply_text("❌ *Akses Ditolak!*")
             return
 
         args = context.args
         if not args:
-            await update.message.reply_text(
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐂𝐀𝐋𝐋\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/spamcall 62xxxxxxxxx"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        nomor = args[0].strip()
+        if not nomor.startswith('62'):
+            update.message.reply_text("❌ Nomor harus diawali 62!")
+            return
+
+        update.message.reply_text(format_loading("Mengirim Spam Call"))
+
+        try:
+            success = run_spam_call(nomor)
+            update.message.reply_text(
+                format_success(
+                    "𝐒𝐏𝐀𝐌 𝐂𝐀𝐋𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    "KETIK /start FOR BACK",
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def button_callback(self, update, context):
+        query = update.callback_query
+        query.answer()
+
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            query.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        data = query.data
+
+        if data == "menu_spam":
+            keyboard = [
+                [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            caption = (
+                f" KATEGORI SPAM\n\n"
+                f"╭───〔 1 〕───╮\n"
+                f"│ 𝙎𝙋𝘼𝙈 𝙈𝙀𝙉𝙐 :\n"
+                f"│ /spamotp\n"
+                f"│ /spamcall\n"
+                f"│ /spampair\n"
+                f"│ /spamrepwa\n"
+                f"│ /spamngl\n"
+                f"│ /spamgmail\n"
+                f"╰────────────────────────────╯\n\n"
+                f"📌 *Cara penggunaan:*\n"
+                f"Ketik command di atas dengan nomor target\n"
+                f"Contoh: /spamotp 628xxxxxxxxx"
+            )
+            query.message.edit_caption(
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+        elif data == "menu_osint":
+            keyboard = [
+                [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            caption = (
+                f" KATEGORI OSINT & TRACKING\n\n"
+                f"╭───〔 2 〕───╮\n"
+                f"│ 𝙊𝙎𝙄𝙉𝙏 & 𝙏𝙍𝘼𝘾𝙆𝙄𝙉𝙂 :\n"
+                f"│ /osintnomor\n"
+                f"│ /osintusername\n"
+                f"│ /osintip\n"
+                f"│ /osintdomain\n"
+                f"│ /iptracker\n"
+                f"│ /portscan\n"
+                f"│ /nikparse\n"
+                f"╰────────────────────────────╯\n\n"
+                f"📌 *Cara penggunaan:*\n"
+                f"Ketik command di atas dengan target\n"
+                f"Contoh: /osintnomor +628xxxxxxxxx"
+            )
+            query.message.edit_caption(
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+        elif data == "menu_utility":
+            keyboard = [
+                [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            caption = (
+                f" KATEGORI UTILITY\n\n"
+                f"╭───〔 3 〕───╮\n"
+                f"│ 𝙐𝙏𝙄𝙇𝙄𝙏𝙔 𝙈𝙀𝙉𝙐 :\n"
+                f"│ /cekkodepos\n"
+                f"│ /ceknpsn\n"
+                f"│ /ffuid\n"
+                f"│ /cekroblox\n"
+                f"│ /cekdataguru\n"
+                f"│ /cekimei\n"
+                f"│ /cekphising\n"
+                f"│ /webrecon\n"
+                f"│ /fototourl\n"
+                f"│ /filetourl\n"
+                f"│ /shortenerurl\n"
+                f"│ /cekresi\n"
+                f"╰────────────────────────────╯\n\n"
+                f"📌 *Cara penggunaan:*\n"
+                f"Ketik command di atas dengan target\n"
+                f"Contoh: /cekkodepos 16112"
+            )
+            query.message.edit_caption(
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+        elif data == "menu_all":
+            keyboard = [
+                [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            caption = (
+                f" 𝐌𝐄𝐍𝐔 𝐀𝐋𝐋 𝐌𝐈𝐊𝐀𝐒𝐀\n\n"
+                f"╭───〔 ♛♛ 〕───╮\n"
+                f"│ 𝙈𝙀𝙉𝙐 𝘽𝙊𝙏 𝙈𝙄𝙆𝘼𝙎𝘼🥘 :\n"
+                f"│ /spamotp\n"
+                f"│ /spamcall\n"
+                f"│ /spampair\n"
+                f"│ /spamrepwa\n"
+                f"│ /spamngl\n"
+                f"│ /osint\n"
+                f"│ /iptracker\n"
+                f"│ /portscan\n"
+                f"│ /nikparse\n"
+                f"│ /cekkodepos\n"
+                f"│ /ceknpsn\n"
+                f"│ /ffuid\n"
+                f"│ /cekroblox\n"
+                f"│ /spamgmail\n"
+                f"│ /cekdataguru\n"
+                f"│ /spambottele\n"
+                f"│ /cekimei\n"
+                f"│ /cekphising\n"
+                f"│ /webrecon\n"
+                f"│ /laporbug\n"
+                f"│ /fototourl\n"
+                f"│ /filetourl\n"
+                f"│ /killbottele\n"
+                f"│ /cekinfobot\n"
+                f"│ /shortenerurl\n"
+                f"│ /hackstatuswa\n"
+                f"│ /cekresi\n"
+                f"│ /getidchatbot\n"
+                f"╰────────────────────────────╯\n\n"
+                f"📌 *Cara penggunaan:*\n"
+                f"Ketik command di atas dengan format yang sesuai"
+            )
+            query.message.edit_caption(
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+        elif data == "menu_back":
+            keyboard = [
+                [InlineKeyboardButton("〔 1 〕𝐒𝐏𝐀𝐌 𝐌𝐄𝐍𝐔", callback_data="menu_spam")],
+                [InlineKeyboardButton("〔 2 〕𝐎𝐒𝐈𝐍𝐓 & 𝐓𝐀𝐑𝐂𝐊𝐄𝐑", callback_data="menu_osint")],
+                [InlineKeyboardButton("〔 3 〕𝐔𝐓𝐈𝐋𝐈𝐓𝐘", callback_data="menu_utility")],
+                [InlineKeyboardButton("〔 4 〕𝐌𝐄𝐍𝐔 𝐀𝐋𝐋", callback_data="menu_all")],
+                [InlineKeyboardButton("〔 5 〕𝐂𝐋𝐎𝐒𝐄", callback_data="menu_close")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            caption = (
+                f"𝙈𝙄𝙆𝘼𝙎𝘼 𝘽𝙊𝙏 𝙈𝘿\n"
+                f"𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+                f"𝙿𝚒𝚕𝚒𝚑 𝚔𝚊𝚝𝚎𝚐𝚘𝚛𝚒 𝚍𝚒 𝚋𝚊𝚠𝚊𝚑 👇"
+            )
+            query.message.edit_caption(
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+        elif data == "menu_close":
+            query.message.delete()
+
+    def cmd_spam_pair(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_text(
                 f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐏𝐀𝐈𝐑𝐈𝐍𝐆\n"
                 f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
                 f"/spampair 628xxxxxxxxx"
@@ -7013,11 +7013,11 @@ class MikasaBot:
         elif nomor.startswith('+62'):
             nomor = nomor[1:]
 
-        await update.message.reply_text(format_loading("Mengirim Kode Pairing"))
+        update.message.reply_text(format_loading("Mengirim Kode Pairing"))
 
         try:
             success = run_spam_pairing(nomor)
-            await update.message.reply_text(
+            update.message.reply_text(
                 format_success(
                     "𝐒𝐏𝐀𝐌 𝐏𝐀𝐈𝐑𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
                     "KETIK /start FOR BACK",
@@ -7025,1132 +7025,1132 @@ class MikasaBot:
                 parse_mode=ParseMode.MARKDOWN
             )
         except Exception as e:
-            await update.message.reply_text(format_error(str(e)))
+            update.message.reply_text(format_error(str(e)))
 
-   async def cmd_spam_repwa(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+    def cmd_spam_repwa(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐑𝐄𝐏𝐎𝐑𝐓 𝐖𝐀\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/spamrepwa +628xxxxxxxxx"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    nomor = args[0].strip()
-    await update.message.reply_text(format_loading("Mengirim Spam Report"))
-
-    try:
-        results = run_spam_report(nomor)
-        detail = "\n".join(results)
-        await update.message.reply_text(
-            format_success(
-                "𝐒𝐏𝐀𝐌 𝐑𝐄𝐏𝐎𝐑𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                f"📱 Target: `{nomor}`\n\n"
-                f"📋 *Detail:*\n{detail}"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_spam_ngl(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐍𝐆𝐋\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/spamngl username"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    username = args[0].strip()
-    await update.message.reply_text(format_loading("Mengirim Spam NGL"))
-
-    try:
-        success = run_spam_ngl(username)
-        await update.message.reply_text(
-            format_success(
-                "𝐒𝐏𝐀𝐌 𝐍𝐆𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                f"👤 Target: `{username}`\n"
-                f"✅ Berhasil: {success}/20"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_osint(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐎𝐒𝐈𝐍𝐓\n"
-            f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-            f"𝙋𝙞𝙡𝙞𝙝:\n"
-            f"/osintnomor +628xxxxxxxxx\n"
-            f"/osintusername username\n"
-            f"/osintip 8.8.8.8\n"
-            f"/osintdomain google.com"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-   async def cmd_osint_nomor(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption="Gunakan: /osintnomor +628xxxxxxxxx",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    nomor = args[0].strip()
-    await update.message.reply_text(format_loading("Melakukan OSINT Nomor"))
-
-    try:
-        info = osint_nomor(nomor)
-        if info:
-            await update.message.reply_text(
-                format_success(
-                    "𝐎𝐒𝐈𝐍𝐓 𝐍𝐎𝐌𝐎𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📱 Nomor: `{info['nomor']}`\n"
-                    f"✅ Valid: {info['valid']}\n"
-                    f"📌 Negara: {info['negara']}\n"
-                    f"📱 Operator: {info['operator']}\n"
-                    f"🌐 Timezone: {info['timezone']}"
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐑𝐄𝐏𝐎𝐑𝐓 𝐖𝐀\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/spamrepwa +628xxxxxxxxx"
                 ),
                 parse_mode=ParseMode.MARKDOWN
             )
-        else:
-            await update.message.reply_text("❌ Gagal OSINT")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+            return
 
-   async def cmd_osint_username(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+        nomor = args[0].strip()
+        update.message.reply_text(format_loading("Mengirim Spam Report"))
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption="Gunakan: /osintusername username",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    username = args[0].strip()
-    await update.message.reply_text(format_loading("Melakukan OSINT Username"))
-
-    try:
-        found = osint_username(username)
-        if found:
-            msg = f"𝙊𝙎𝙄𝙉𝙏 𝙐𝙎𝙀𝙍𝙉𝘼𝙈𝙀 𝙎𝙀𝙇𝙀𝙎𝘼𝙄✅\n\n"
-            for name, url in found:
-                msg += f"✅ {name}: {url}\n"
-            await update.message.reply_text(msg)
-        else:
-            await update.message.reply_text(f"❌ Username `{username}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_osint_ip(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption="Gunakan: /osintip 8.8.8.8",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    ip = args[0].strip()
-    await update.message.reply_text(format_loading("Melakukan OSINT IP"))
-
-    try:
-        data = osint_ip(ip)
-        if data and data.get('status') == 'success':
-            await update.message.reply_text(
+        try:
+            results = run_spam_report(nomor)
+            detail = "\n".join(results)
+            update.message.reply_text(
                 format_success(
-                    "𝐎𝐒𝐈𝐍𝐓 𝐈𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🌍 IP: `{data.get('query', 'N/A')}`\n"
-                    f"📍 Negara: {data.get('country', 'N/A')}\n"
-                    f"🏙️ Kota: {data.get('city', 'N/A')}\n"
-                    f"📌 ISP: {data.get('isp', 'N/A')}\n"
-                    f"🌐 Timezone: {data.get('timezone', 'N/A')}\n"
-                    f"🗺️ Google Maps: https://maps.google.com/?q={data.get('lat', '')},{data.get('lon', '')}"
+                    "𝐒𝐏𝐀𝐌 𝐑𝐄𝐏𝐎𝐑𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"📱 Target: `{nomor}`\n\n"
+                    f"📋 *Detail:*\n{detail}"
                 ),
                 parse_mode=ParseMode.MARKDOWN
             )
-        else:
-            await update.message.reply_text("❌ Gagal OSINT IP")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
 
-   async def cmd_osint_domain(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+    def cmd_spam_ngl(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption="Gunakan: /osintdomain google.com",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    domain = args[0].strip()
-    await update.message.reply_text(format_loading("Melakukan OSINT Domain"))
-
-    try:
-        data = osint_domain(domain)
-        if data:
-            whois = data.get('whois', {})
-            await update.message.reply_text(
-                format_success(
-                    "𝐎𝐒𝐈𝐍𝐓 𝐃𝐎𝐌𝐀𝐈𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🌍 Domain: `{data['domain']}`\n"
-                    f"📌 IP: `{data['ip']}`\n"
-                    f"📋 Registrar: {whois.get('registrar', 'N/A')}\n"
-                    f"📅 Created: {whois.get('creation_date', 'N/A')}\n"
-                    f"⏰ Expires: {whois.get('expiration_date', 'N/A')}"
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐍𝐆𝐋\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/spamngl username"
                 ),
                 parse_mode=ParseMode.MARKDOWN
             )
-        else:
-            await update.message.reply_text(f"❌ Domain `{domain}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+            return
 
-   async def cmd_ip_tracker(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+        username = args[0].strip()
+        update.message.reply_text(format_loading("Mengirim Spam NGL"))
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
+        try:
+            success = run_spam_ngl(username)
+            update.message.reply_text(
+                format_success(
+                    "𝐒𝐏𝐀𝐌 𝐍𝐆𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"👤 Target: `{username}`\n"
+                    f"✅ Berhasil: {success}/20"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_osint(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        update.message.reply_photo(
             photo=IMAGE,
             caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐈𝐏 𝐓𝐑𝐀𝐂𝐊𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/iptracker 8.8.8.8"
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐎𝐒𝐈𝐍𝐓\n"
+                f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+                f"𝙋𝙞𝙡𝙞𝙝:\n"
+                f"/osintnomor +628xxxxxxxxx\n"
+                f"/osintusername username\n"
+                f"/osintip 8.8.8.8\n"
+                f"/osintdomain google.com"
             ),
             parse_mode=ParseMode.MARKDOWN
         )
-        return
 
-    ip = args[0].strip()
-    await update.message.reply_text(format_loading("Melacak IP"))
+    def cmd_osint_nomor(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
 
-    try:
-        data = tool_ip_tracker(ip)
-        if data and data.get('status') == 'success':
-            await update.message.reply_text(
-                format_success(
-                    "𝐈𝐏 𝐓𝐑𝐀𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"━━━ *INFORMASI IP* ━━━\n"
-                    f"🌍 IP: `{data.get('query', 'N/A')}`\n"
-                    f"📍 Negara: {data.get('country', 'N/A')} ({data.get('countryCode', '')})\n"
-                    f"🗺️ Region: {data.get('regionName', 'N/A')}\n"
-                    f"🏙️ Kota: {data.get('city', 'N/A')}\n"
-                    f"📮 Kode Pos: {data.get('zip', 'N/A')}\n"
-                    f"📌 ISP: {data.get('isp', 'N/A')}\n"
-                    f"🏢 Organisasi: {data.get('org', 'N/A')}\n"
-                    f"🌐 Timezone: {data.get('timezone', 'N/A')}\n"
-                    f"📱 Mobile: {'Ya' if data.get('mobile') else 'Tidak'}\n"
-                    f"🔒 Proxy/VPN: {'Ya' if data.get('proxy') else 'Tidak'}\n"
-                    f"🗺️ *Google Maps:* https://maps.google.com/?q={data.get('lat', '')},{data.get('lon', '')}"
-                ),
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption="Gunakan: /osintnomor +628xxxxxxxxx",
                 parse_mode=ParseMode.MARKDOWN
             )
-        else:
-            await update.message.reply_text("❌ Gagal melacak IP")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+            return
 
-   async def cmd_port_scan(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+        nomor = args[0].strip()
+        update.message.reply_text(format_loading("Melakukan OSINT Nomor"))
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍𝐍𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/portscan google.com"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    domain = args[0].strip().replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
-    await update.message.reply_text(format_loading("Scanning Port"))
-
-    try:
-        result = tool_port_scanner(domain)
-        if result:
-            if result['open_ports']:
-                ports_text = "\n".join([f"🔓 {p['port']} ({p['name']})" for p in result['open_ports']])
-                await update.message.reply_text(
+        try:
+            info = osint_nomor(nomor)
+            if info:
+                update.message.reply_text(
                     format_success(
-                        "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"🌍 Target: `{domain}`\n"
-                        f"📌 IP: `{result['ip']}`\n"
-                        f"🔓 Port terbuka:\n{ports_text}"
+                        "𝐎𝐒𝐈𝐍𝐓 𝐍𝐎𝐌𝐎𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"📱 Nomor: `{info['nomor']}`\n"
+                        f"✅ Valid: {info['valid']}\n"
+                        f"📌 Negara: {info['negara']}\n"
+                        f"📱 Operator: {info['operator']}\n"
+                        f"🌐 Timezone: {info['timezone']}"
                     ),
                     parse_mode=ParseMode.MARKDOWN
                 )
             else:
-                await update.message.reply_text(
+                update.message.reply_text("❌ Gagal OSINT")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_osint_username(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption="Gunakan: /osintusername username",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        username = args[0].strip()
+        update.message.reply_text(format_loading("Melakukan OSINT Username"))
+
+        try:
+            found = osint_username(username)
+            if found:
+                msg = f"𝙊𝙎𝙄𝙉𝙏 𝙐𝙎𝙀𝙍𝙉𝘼𝙈𝙀 𝙎𝙀𝙇𝙀𝙎𝘼𝙄✅\n\n"
+                for name, url in found:
+                    msg += f"✅ {name}: {url}\n"
+                update.message.reply_text(msg)
+            else:
+                update.message.reply_text(f"❌ Username `{username}` tidak ditemukan")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_osint_ip(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption="Gunakan: /osintip 8.8.8.8",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        ip = args[0].strip()
+        update.message.reply_text(format_loading("Melakukan OSINT IP"))
+
+        try:
+            data = osint_ip(ip)
+            if data and data.get('status') == 'success':
+                update.message.reply_text(
                     format_success(
-                        "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"🌍 Target: `{domain}`\n"
-                        f"📌 IP: `{result['ip']}`\n"
-                        f"❌ Tidak ada port terbuka"
+                        "𝐎𝐒𝐈𝐍𝐓 𝐈𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🌍 IP: `{data.get('query', 'N/A')}`\n"
+                        f"📍 Negara: {data.get('country', 'N/A')}\n"
+                        f"🏙️ Kota: {data.get('city', 'N/A')}\n"
+                        f"📌 ISP: {data.get('isp', 'N/A')}\n"
+                        f"🌐 Timezone: {data.get('timezone', 'N/A')}\n"
+                        f"🗺️ Google Maps: https://maps.google.com/?q={data.get('lat', '')},{data.get('lon', '')}"
                     ),
                     parse_mode=ParseMode.MARKDOWN
                 )
-        else:
-            await update.message.reply_text("❌ Gagal scan port")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+            else:
+                update.message.reply_text("❌ Gagal OSINT IP")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
 
-   async def cmd_nik_parse(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+    def cmd_osint_domain(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐍𝐈𝐊 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/nikparse 3307110101990001"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    nik = args[0].strip()
-    if not nik.isdigit() or len(nik) != 16:
-        await update.message.reply_text("❌ NIK harus 16 digit angka!")
-        return
-
-    await update.message.reply_text(format_loading("Mengecek NIK"))
-
-    try:
-        url = f"https://api.nexray.eu.cc/tools/nikparse?nik={nik}"
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            result = data.get('result', {})
-
-            msg = (
-                f"📌 NIK: `{nik}`\n"
-                f"👤 Gender: {result.get('kelamin', 'N/A')}\n"
-                f"📅 Lahir: {result.get('lahir_lengkap', 'N/A')}\n"
-                f"📍 Provinsi: {result.get('provinsi', {}).get('nama', 'N/A')}\n"
-                f"🏙️ Kab/Kota: {result.get('kotakab', {}).get('nama', 'N/A')}\n"
-                f"📌 Kecamatan: {result.get('kecamatan', {}).get('nama', 'N/A')}"
-            )
-            await update.message.reply_text(
-                format_success("𝐍𝐈𝐊 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅", msg),
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption="Gunakan: /osintdomain google.com",
                 parse_mode=ParseMode.MARKDOWN
             )
-        else:
-            await update.message.reply_text(f"❌ NIK `{nik}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+            return
 
-   async def cmd_cek_kodepos(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+        domain = args[0].strip()
+        update.message.reply_text(format_loading("Melakukan OSINT Domain"))
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐊𝐎𝐃𝐄 𝐏𝐎𝐒\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekkodepos 16112"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
+        try:
+            data = osint_domain(domain)
+            if data:
+                whois = data.get('whois', {})
+                update.message.reply_text(
+                    format_success(
+                        "𝐎𝐒𝐈𝐍𝐓 𝐃𝐎𝐌𝐀𝐈𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🌍 Domain: `{data['domain']}`\n"
+                        f"📌 IP: `{data['ip']}`\n"
+                        f"📋 Registrar: {whois.get('registrar', 'N/A')}\n"
+                        f"📅 Created: {whois.get('creation_date', 'N/A')}\n"
+                        f"⏰ Expires: {whois.get('expiration_date', 'N/A')}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(f"❌ Domain `{domain}` tidak ditemukan")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
 
-    kode_pos = args[0].strip()
-    if not kode_pos.isdigit() or len(kode_pos) != 5:
-        await update.message.reply_text("❌ Kode pos harus 5 digit!")
-        return
+    def cmd_ip_tracker(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
 
-    await update.message.reply_text(format_loading("Mencari Kode Pos"))
-
-    try:
-        data = tool_cek_kode_pos(kode_pos)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐊𝐎𝐃𝐄 𝐏𝐎𝐒 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📮 Kode Pos: `{kode_pos}`\n"
-                    f"📍 Nama: {data.get('nama', 'N/A')}"
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐈𝐏 𝐓𝐑𝐀𝐂𝐊𝐄𝐑\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/iptracker 8.8.8.8"
                 ),
                 parse_mode=ParseMode.MARKDOWN
             )
-        else:
-            await update.message.reply_text(f"❌ Kode pos `{kode_pos}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+            return
 
-   async def cmd_cek_npsn(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+        ip = args[0].strip()
+        update.message.reply_text(format_loading("Melacak IP"))
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐍𝐏𝐒𝐍\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/ceknpsn 40203594"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
+        try:
+            data = tool_ip_tracker(ip)
+            if data and data.get('status') == 'success':
+                update.message.reply_text(
+                    format_success(
+                        "𝐈𝐏 𝐓𝐑𝐀𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"━━━ *INFORMASI IP* ━━━\n"
+                        f"🌍 IP: `{data.get('query', 'N/A')}`\n"
+                        f"📍 Negara: {data.get('country', 'N/A')} ({data.get('countryCode', '')})\n"
+                        f"🗺️ Region: {data.get('regionName', 'N/A')}\n"
+                        f"🏙️ Kota: {data.get('city', 'N/A')}\n"
+                        f"📮 Kode Pos: {data.get('zip', 'N/A')}\n"
+                        f"📌 ISP: {data.get('isp', 'N/A')}\n"
+                        f"🏢 Organisasi: {data.get('org', 'N/A')}\n"
+                        f"🌐 Timezone: {data.get('timezone', 'N/A')}\n"
+                        f"📱 Mobile: {'Ya' if data.get('mobile') else 'Tidak'}\n"
+                        f"🔒 Proxy/VPN: {'Ya' if data.get('proxy') else 'Tidak'}\n"
+                        f"🗺️ *Google Maps:* https://maps.google.com/?q={data.get('lat', '')},{data.get('lon', '')}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text("❌ Gagal melacak IP")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
 
-    npsn = args[0].strip()
-    if not npsn.isdigit() or len(npsn) != 8:
-        await update.message.reply_text("❌ NPSN harus 8 digit!")
-        return
+    def cmd_port_scan(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
 
-    await update.message.reply_text(format_loading("Mencari NPSN"))
-
-    try:
-        data = tool_cek_npsn(npsn)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐍𝐏𝐒𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🏫 Nama: {data.get('nama', 'N/A')}\n"
-                    f"📮 NPSN: {data.get('npsn', 'N/A')}\n"
-                    f"📍 Provinsi: {data.get('provinsi', 'N/A')}\n"
-                    f"🏙️ Kab/Kota: {data.get('kabupaten', 'N/A')}"
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍𝐍𝐄𝐑\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/portscan google.com"
                 ),
                 parse_mode=ParseMode.MARKDOWN
             )
-        else:
-            await update.message.reply_text(f"❌ NPSN `{npsn}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+            return
 
-   async def cmd_ff_uid(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+        domain = args[0].strip().replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
+        update.message.reply_text(format_loading("Scanning Port"))
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐅 𝐔𝐈𝐃 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/ffuid 10353221131"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
+        try:
+            result = tool_port_scanner(domain)
+            if result:
+                if result['open_ports']:
+                    ports_text = "\n".join([f"🔓 {p['port']} ({p['name']})" for p in result['open_ports']])
+                    update.message.reply_text(
+                        format_success(
+                            "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                            f"🌍 Target: `{domain}`\n"
+                            f"📌 IP: `{result['ip']}`\n"
+                            f"🔓 Port terbuka:\n{ports_text}"
+                        ),
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                else:
+                    update.message.reply_text(
+                        format_success(
+                            "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                            f"🌍 Target: `{domain}`\n"
+                            f"📌 IP: `{result['ip']}`\n"
+                            f"❌ Tidak ada port terbuka"
+                        ),
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+            else:
+                update.message.reply_text("❌ Gagal scan port")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
 
-    uid = args[0].strip()
-    if not uid.isdigit():
-        await update.message.reply_text("❌ UID harus angka!")
-        return
+    def cmd_nik_parse(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
 
-    await update.message.reply_text(format_loading("Mengecek UID Free Fire"))
-
-    try:
-        data = tool_freefire_checker(uid)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐅𝐑𝐄𝐄 𝐅𝐈𝐑𝐄 𝐔𝐈𝐃 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🆔 UID: `{data.get('uid', 'N/A')}`\n"
-                    f"👤 Nama: {data.get('name', 'N/A')}\n"
-                    f"📊 Level: {data.get('level', 'N/A')}\n"
-                    f"🌍 Region: {data.get('region', 'N/A')}"
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐍𝐈𝐊 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/nikparse 3307110101990001"
                 ),
                 parse_mode=ParseMode.MARKDOWN
             )
-        else:
-            await update.message.reply_text(f"❌ UID `{uid}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+            return
 
-   async def cmd_cek_roblox(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+        nik = args[0].strip()
+        if not nik.isdigit() or len(nik) != 16:
+            update.message.reply_text("❌ NIK harus 16 digit angka!")
+            return
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐑𝐎𝐁𝐋𝐎𝐗 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekroblox Builderman"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
+        update.message.reply_text(format_loading("Mengecek NIK"))
 
-    username = args[0].strip()
-    await update.message.reply_text(format_loading("Mengecek Akun Roblox"))
-
-    try:
-        data = tool_roblox_checker(username)
-        if data:
-            basic = data.get('basic', {})
-            await update.message.reply_text(
-                format_success(
-                    "𝐑𝐎𝐁𝐋𝐎𝐗 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🆔 ID: `{data.get('userId', 'N/A')}`\n"
-                    f"👤 Username: {basic.get('name', 'N/A')}\n"
-                    f"📅 Created: {basic.get('created', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Username `{username}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_spam_gmail(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋\n"
-                f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
-                f"/spamgmail target@gmail.com\n"
-                f"/spamgmail target@gmail.com | pesan yang ingin dikirim\n\n"
-                f"📌 Gunakan tanda | sebagai pemisah antara email dan pesan"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    full_text = ' '.join(args)
-    if '|' in full_text:
-        parts = full_text.split('|', 1)
-        target_email = parts[0].strip()
-        custom_message = parts[1].strip() if len(parts) > 1 else None
-    else:
-        target_email = full_text.strip()
-        custom_message = None
-
-    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', target_email):
-        await update.message.reply_text("❌ Format email tidak valid!")
-        return
-
-    if custom_message and len(custom_message) > 4000:
-        await update.message.reply_text("❌ Pesan terlalu panjang! Maksimal 4000 karakter.")
-        return
-
-    total_senders = len(get_email_senders())
-    await update.message.reply_text(format_loading(f"Mengirim Spam Email ke {target_email}"))
-
-    try:
-        success, total = run_spam_gmail(target_email, custom_message)
-
-        if custom_message:
-            msg_preview = custom_message[:50] + ("..." if len(custom_message) > 50 else "")
-            await update.message.reply_text(
-                format_success(
-                    "𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📧 Target: `{target_email}`\n"
-                    f"✅ Berhasil: {success}/{total} sender\n"
-                    f"📝 Pesan: {msg_preview}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(
-                format_success(
-                    "𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📧 Target: `{target_email}`\n"
-                    f"✅ Berhasil: {success}/{total} sender"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_dataguru(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐃𝐀𝐓𝐀 𝐆𝐔𝐑𝐔\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekdataguru 1234567890123456"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    keyword = args[0].strip()
-    await update.message.reply_text(format_loading("Mencari Data Guru"))
-
-    try:
-        data = tool_cek_gtk(keyword)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐃𝐀𝐓𝐀 𝐆𝐔𝐑𝐔 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"👤 Nama: {data.get('nama', 'N/A')}\n"
-                    f"📮 NUPTK: {data.get('nuptk', 'N/A')}\n"
-                    f"🏫 Sekolah: {data.get('sekolah', {}).get('nama', 'N/A')}\n"
-                    f"📍 Provinsi: {data.get('sekolah', {}).get('m_propinsi', {}).get('keterangan', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Data tidak ditemukan untuk `{keyword}`")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_spam_bottele(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args or len(args) < 3:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌\n"
-                f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
-                f"/spambottele token idchat pesan"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    token = args[0].strip()
-    chat_id = args[1].strip()
-    pesan = ' '.join(args[2:])
-
-    await update.message.reply_text(format_loading("Mengirim Spam Bot Telegram"))
-
-    try:
-        success = 0
-        for i in range(10):
-            url = f"https://api.telegram.org/bot{token}/sendMessage"
-            payload = {"chat_id": chat_id, "text": pesan}
-            resp = requests.post(url, data=payload, timeout=10)
+        try:
+            url = f"https://api.nexray.eu.cc/tools/nikparse?nik={nik}"
+            resp = requests.get(url, timeout=10)
             if resp.status_code == 200:
-                success += 1
-            time.sleep(0.5)
-
-        await update.message.reply_text(
-            format_success(
-                "𝐒𝐏𝐀𝐌 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                f"✅ Berhasil: {success}/10\n"
-                f"📌 Chat ID: `{chat_id}`"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_imei(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐈𝐌𝐄𝐈\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekimei 353911112345678"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    imei = args[0].strip()
-    if not imei.isdigit() or len(imei) < 14 or len(imei) > 17:
-        await update.message.reply_text("❌ IMEI harus 14-17 digit!")
-        return
-
-    await update.message.reply_text(format_loading("Mengecek IMEI"))
-
-    try:
-        data = tool_cek_imei(imei)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐈𝐌𝐄𝐈 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📌 IMEI: `{imei}`\n"
-                    f"📱 Model: {data.get('Item1', 'N/A')}\n"
-                    f"🏷️ Brand: {data.get('Item3', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ IMEI `{imei}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_phising(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐋𝐈𝐍𝐊 𝐏𝐇𝐈𝐒𝐈𝐍𝐆\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekphising https://example.com"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    url = args[0].strip()
-    if not url.startswith('http'):
-        url = 'https://' + url
-
-    await update.message.reply_text(format_loading("Mengecek URL Phising"))
-
-    try:
-        data = tool_web_phising_checker(url)
-        if data:
-            status = "⚠️ Terdeteksi PHISING!" if data.get('is_phishing') else "✅ Aman"
-            await update.message.reply_text(
-                format_success(
-                    "𝐂𝐄𝐊 𝐋𝐈𝐍𝐊 𝐏𝐇𝐈𝐒𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🔗 URL: {url[:60]}...\n"
-                    f"📌 Status: {status}\n"
-                    f"🛡️ Malware: {'⚠️ Terdeteksi' if data.get('contains_malware') else '✅ Aman'}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text("❌ Gagal mengecek URL")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_web_recon(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐖𝐄𝐁 𝐑𝐄𝐂𝐎𝐍𝐍𝐀𝐈𝐒𝐒𝐀𝐍𝐂𝐄\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/webrecon google.com"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    domain = args[0].strip().replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
-    await update.message.reply_text(format_loading("Melakukan Web Reconnaissance"))
-
-    try:
-        data = tool_web_recon(domain)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐖𝐄𝐁 𝐑𝐄𝐂𝐎𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🌍 Domain: `{data['domain']}`\n"
-                    f"📌 IP: `{data['ip']}`\n"
-                    f"🔍 Subdomain: {data['total_subs']} ditemukan\n"
-                    f"🔌 Port terbuka: {', '.join(map(str, data['open_ports'])) if data['open_ports'] else 'Tidak ada'}\n\n"
-                    f"📋 *Subdomain sample:*\n" + "\n".join(data['subdomains'][:10]) if data['subdomains'] else "Tidak ada subdomain"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Gagal reconnaissance untuk `{domain}`")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_lapor_bug(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐋𝐀𝐏𝐎𝐑 𝐁𝐔𝐆\n"
-            f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-            f"𝙇𝙖𝙥𝙤𝙧𝙠𝙖𝙣 𝙗𝙪𝙜 𝙠𝙚 𝙖𝙙𝙢𝙞𝙣:\n"
-            f"https://wa.me/+6283832110509"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-   async def cmd_foto_tourl(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐎𝐓𝐎/𝐕𝐈𝐃𝐄𝐎 𝐓𝐎 𝐔𝐑𝐋\n"
-            f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-            f"Kirim file foto/video (max 200MB)"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
-    context.user_data['state'] = 'upload_photo'
-
-   async def cmd_file_tourl(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐈𝐋𝐄 𝐓𝐎 𝐔𝐑𝐋\n"
-            f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-            f"Kirim file (max 10GB)"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
-    context.user_data['state'] = 'upload_file'
-
-   async def cmd_kill_bottele(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐊𝐈𝐋𝐋 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/killbottele 1234567890:ABCdef"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    token = args[0].strip()
-    await update.message.reply_text(format_loading("Membunuh Bot Telegram"))
-
-    try:
-        url = f'https://api.telegram.org/bot{token}/logOut'
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get('ok'):
-                await update.message.reply_text(
-                    format_success(
-                        "𝐊𝐈𝐋𝐋 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"✅ Bot berhasil dimatikan!"
-                    ),
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            else:
-                await update.message.reply_text("❌ Token bot tidak valid")
-        else:
-            await update.message.reply_text("❌ Gagal mematikan bot")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_infobot(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐈𝐍𝐅𝐎 𝐁𝐎𝐓\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekinfobot 1234567890:ABCdef"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    token = args[0].strip()
-    await update.message.reply_text(format_loading("Mengambil Info Bot"))
-
-    try:
-        url = f'https://api.telegram.org/bot{token}/getMe'
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get('ok'):
+                data = resp.json()
                 result = data.get('result', {})
-                await update.message.reply_text(
+
+                msg = (
+                    f"📌 NIK: `{nik}`\n"
+                    f"👤 Gender: {result.get('kelamin', 'N/A')}\n"
+                    f"📅 Lahir: {result.get('lahir_lengkap', 'N/A')}\n"
+                    f"📍 Provinsi: {result.get('provinsi', {}).get('nama', 'N/A')}\n"
+                    f"🏙️ Kab/Kota: {result.get('kotakab', {}).get('nama', 'N/A')}\n"
+                    f"📌 Kecamatan: {result.get('kecamatan', {}).get('nama', 'N/A')}"
+                )
+                update.message.reply_text(
+                    format_success("𝐍𝐈𝐊 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅", msg),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(f"❌ NIK `{nik}` tidak ditemukan")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_cek_kodepos(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐊𝐎𝐃𝐄 𝐏𝐎𝐒\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/cekkodepos 16112"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        kode_pos = args[0].strip()
+        if not kode_pos.isdigit() or len(kode_pos) != 5:
+            update.message.reply_text("❌ Kode pos harus 5 digit!")
+            return
+
+        update.message.reply_text(format_loading("Mencari Kode Pos"))
+
+        try:
+            data = tool_cek_kode_pos(kode_pos)
+            if data:
+                update.message.reply_text(
                     format_success(
-                        "𝐈𝐍𝐅𝐎 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"🆔 ID: `{result.get('id', 'N/A')}`\n"
-                        f"👤 Nama: {result.get('first_name', 'N/A')}\n"
-                        f"🔗 Username: @{result.get('username', 'N/A')}"
+                        "𝐊𝐎𝐃𝐄 𝐏𝐎𝐒 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"📮 Kode Pos: `{kode_pos}`\n"
+                        f"📍 Nama: {data.get('nama', 'N/A')}"
                     ),
                     parse_mode=ParseMode.MARKDOWN
                 )
             else:
-                await update.message.reply_text("❌ Token bot tidak valid")
-        else:
-            await update.message.reply_text("❌ Gagal mengambil info bot")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+                update.message.reply_text(f"❌ Kode pos `{kode_pos}` tidak ditemukan")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
 
-   async def cmd_shortener_url(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+    def cmd_cek_npsn(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
 
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐋𝐈𝐍𝐊 𝐒𝐇𝐎𝐑𝐓𝐄𝐍𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/shortenerurl https://www.tokopedia.com"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    url = args[0].strip()
-    if not url.startswith('http'):
-        url = 'https://' + url
-
-    await update.message.reply_text(format_loading("Memendekkan URL"))
-
-    try:
-        result = tool_link_shortener(url)
-        if result:
-            await update.message.reply_text(
-                format_success(
-                    "𝐋𝐈𝐍𝐊 𝐒𝐇𝐎𝐑𝐓𝐄𝐍𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🔗 URL Pendek: {result}\n"
-                    f"📎 URL Asli: {url[:60]}..."
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐍𝐏𝐒𝐍\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/ceknpsn 40203594"
                 ),
                 parse_mode=ParseMode.MARKDOWN
             )
-        else:
-            await update.message.reply_text("❌ Gagal memendekkan URL")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+            return
 
-   async def cmd_hack_status_wa(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
+        npsn = args[0].strip()
+        if not npsn.isdigit() or len(npsn) != 8:
+            update.message.reply_text("❌ NPSN harus 8 digit!")
+            return
 
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐇𝐀𝐂𝐊 𝐒𝐓𝐀𝐓𝐔𝐒 𝐖𝐀\n"
-            f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-            f"𝙋𝙖𝙨𝙩𝙞𝙠𝙖𝙣 𝙒𝙝𝙖𝙩𝙨𝘼𝙥𝙥 𝙩𝙚𝙧𝙞𝙣𝙨𝙩𝙖𝙡𝙡\n"
-            f"𝙙𝙖𝙣 𝙨𝙪𝙙𝙖𝙝 𝙢𝙚𝙢𝙗𝙪𝙠𝙖 𝙨𝙩𝙖𝙩𝙪𝙨.\n\n"
-            f"𝙃𝙖𝙨𝙞𝙡 𝙖𝙠𝙖𝙣 𝙙𝙞𝙨𝙞𝙢𝙥𝙖𝙣 𝙙𝙞 𝙛𝙤𝙡𝙙𝙚𝙧 Status_WA"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
+        update.message.reply_text(format_loading("Mencari NPSN"))
 
-   async def cmd_cek_resi(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args or len(args) < 2:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐑𝐄𝐒𝐈\n"
-                f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
-                f"/cekresi kurir nomorresi\n\n"
-                f"Kurir: jne, jnt, sicepat, anteraja, pos, tiki, shopee\n"
-                f"Contoh: /cekresi jne 1234567890"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    courier = args[0].strip().lower()
-    awb = args[1].strip()
-
-    await update.message.reply_text(format_loading("Mencari Resi"))
-
-    try:
-        data = tool_cek_resi(courier, awb)
-        if data:
-            history = data.get('history', [])
-            history_text = ""
-            for h in history[-5:]:
-                history_text += f"📅 {h.get('date', '')} → {h.get('desc', '')}\n"
-
-            await update.message.reply_text(
-                format_success(
-                    "𝐂𝐄𝐊 𝐑𝐄𝐒𝐈 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📮 Resi: `{data.get('awb', 'N/A')}`\n"
-                    f"📦 Kurir: {data.get('courier', 'N/A').upper()}\n"
-                    f"📌 Status: {data.get('status', 'N/A')}\n\n"
-                    f"📋 *Riwayat:*\n{history_text or 'Belum ada riwayat'}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Resi `{awb}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_get_id_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐆𝐄𝐓 𝐈𝐃 𝐂𝐇𝐀𝐓\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/getidchatbot 1234567890:ABCdef"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    token = args[0].strip()
-    await update.message.reply_text(format_loading("Mengambil ID Chat Bot"))
-
-    try:
-        url = f'https://api.telegram.org/bot{token}/getMe'
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get('ok'):
-                result = data.get('result', {})
-                await update.message.reply_text(
+        try:
+            data = tool_cek_npsn(npsn)
+            if data:
+                update.message.reply_text(
                     format_success(
-                        "𝐆𝐄𝐓 𝐈𝐃 𝐂𝐇𝐀𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"🆔 Bot ID: `{result.get('id', 'N/A')}`\n"
-                        f"👤 Nama: {result.get('first_name', 'N/A')}\n"
-                        f"🔗 Username: @{result.get('username', 'N/A')}"
+                        "𝐍𝐏𝐒𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🏫 Nama: {data.get('nama', 'N/A')}\n"
+                        f"📮 NPSN: {data.get('npsn', 'N/A')}\n"
+                        f"📍 Provinsi: {data.get('provinsi', 'N/A')}\n"
+                        f"🏙️ Kab/Kota: {data.get('kabupaten', 'N/A')}"
                     ),
                     parse_mode=ParseMode.MARKDOWN
                 )
             else:
-                await update.message.reply_text("❌ Token bot tidak valid")
-        else:
-            await update.message.reply_text("❌ Gagal mengambil ID bot")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
+                update.message.reply_text(f"❌ NPSN `{npsn}` tidak ditemukan")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
 
+    def cmd_ff_uid(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐅 𝐔𝐈𝐃 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/ffuid 10353221131"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        uid = args[0].strip()
+        if not uid.isdigit():
+            update.message.reply_text("❌ UID harus angka!")
+            return
+
+        update.message.reply_text(format_loading("Mengecek UID Free Fire"))
+
+        try:
+            data = tool_freefire_checker(uid)
+            if data:
+                update.message.reply_text(
+                    format_success(
+                        "𝐅𝐑𝐄𝐄 𝐅𝐈𝐑𝐄 𝐔𝐈𝐃 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🆔 UID: `{data.get('uid', 'N/A')}`\n"
+                        f"👤 Nama: {data.get('name', 'N/A')}\n"
+                        f"📊 Level: {data.get('level', 'N/A')}\n"
+                        f"🌍 Region: {data.get('region', 'N/A')}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(f"❌ UID `{uid}` tidak ditemukan")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_cek_roblox(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐑𝐎𝐁𝐋𝐎𝐗 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/cekroblox Builderman"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        username = args[0].strip()
+        update.message.reply_text(format_loading("Mengecek Akun Roblox"))
+
+        try:
+            data = tool_roblox_checker(username)
+            if data:
+                basic = data.get('basic', {})
+                update.message.reply_text(
+                    format_success(
+                        "𝐑𝐎𝐁𝐋𝐎𝐗 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🆔 ID: `{data.get('userId', 'N/A')}`\n"
+                        f"👤 Username: {basic.get('name', 'N/A')}\n"
+                        f"📅 Created: {basic.get('created', 'N/A')}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(f"❌ Username `{username}` tidak ditemukan")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_spam_gmail(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋\n"
+                    f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
+                    f"/spamgmail target@gmail.com\n"
+                    f"/spamgmail target@gmail.com | pesan yang ingin dikirim\n\n"
+                    f"📌 Gunakan tanda | sebagai pemisah antara email dan pesan"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        full_text = ' '.join(args)
+        if '|' in full_text:
+            parts = full_text.split('|', 1)
+            target_email = parts[0].strip()
+            custom_message = parts[1].strip() if len(parts) > 1 else None
+        else:
+            target_email = full_text.strip()
+            custom_message = None
+
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', target_email):
+            update.message.reply_text("❌ Format email tidak valid!")
+            return
+
+        if custom_message and len(custom_message) > 4000:
+            update.message.reply_text("❌ Pesan terlalu panjang! Maksimal 4000 karakter.")
+            return
+
+        total_senders = len(get_email_senders())
+        update.message.reply_text(format_loading(f"Mengirim Spam Email ke {target_email}"))
+
+        try:
+            success, total = run_spam_gmail(target_email, custom_message)
+
+            if custom_message:
+                msg_preview = custom_message[:50] + ("..." if len(custom_message) > 50 else "")
+                update.message.reply_text(
+                    format_success(
+                        "𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"📧 Target: `{target_email}`\n"
+                        f"✅ Berhasil: {success}/{total} sender\n"
+                        f"📝 Pesan: {msg_preview}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(
+                    format_success(
+                        "𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"📧 Target: `{target_email}`\n"
+                        f"✅ Berhasil: {success}/{total} sender"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_cek_dataguru(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐃𝐀𝐓𝐀 𝐆𝐔𝐑𝐔\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/cekdataguru 1234567890123456"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        keyword = args[0].strip()
+        update.message.reply_text(format_loading("Mencari Data Guru"))
+
+        try:
+            data = tool_cek_gtk(keyword)
+            if data:
+                update.message.reply_text(
+                    format_success(
+                        "𝐃𝐀𝐓𝐀 𝐆𝐔𝐑𝐔 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"👤 Nama: {data.get('nama', 'N/A')}\n"
+                        f"📮 NUPTK: {data.get('nuptk', 'N/A')}\n"
+                        f"🏫 Sekolah: {data.get('sekolah', {}).get('nama', 'N/A')}\n"
+                        f"📍 Provinsi: {data.get('sekolah', {}).get('m_propinsi', {}).get('keterangan', 'N/A')}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(f"❌ Data tidak ditemukan untuk `{keyword}`")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_spam_bottele(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args or len(args) < 3:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌\n"
+                    f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
+                    f"/spambottele token idchat pesan"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        token = args[0].strip()
+        chat_id = args[1].strip()
+        pesan = ' '.join(args[2:])
+
+        update.message.reply_text(format_loading("Mengirim Spam Bot Telegram"))
+
+        try:
+            success = 0
+            for i in range(10):
+                url = f"https://api.telegram.org/bot{token}/sendMessage"
+                payload = {"chat_id": chat_id, "text": pesan}
+                resp = requests.post(url, data=payload, timeout=10)
+                if resp.status_code == 200:
+                    success += 1
+                time.sleep(0.5)
+
+            update.message.reply_text(
+                format_success(
+                    "𝐒𝐏𝐀𝐌 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"✅ Berhasil: {success}/10\n"
+                    f"📌 Chat ID: `{chat_id}`"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_cek_imei(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐈𝐌𝐄𝐈\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/cekimei 353911112345678"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        imei = args[0].strip()
+        if not imei.isdigit() or len(imei) < 14 or len(imei) > 17:
+            update.message.reply_text("❌ IMEI harus 14-17 digit!")
+            return
+
+        update.message.reply_text(format_loading("Mengecek IMEI"))
+
+        try:
+            data = tool_cek_imei(imei)
+            if data:
+                update.message.reply_text(
+                    format_success(
+                        "𝐈𝐌𝐄𝐈 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"📌 IMEI: `{imei}`\n"
+                        f"📱 Model: {data.get('Item1', 'N/A')}\n"
+                        f"🏷️ Brand: {data.get('Item3', 'N/A')}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(f"❌ IMEI `{imei}` tidak ditemukan")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_cek_phising(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐋𝐈𝐍𝐊 𝐏𝐇𝐈𝐒𝐈𝐍𝐆\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/cekphising https://example.com"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        url = args[0].strip()
+        if not url.startswith('http'):
+            url = 'https://' + url
+
+        update.message.reply_text(format_loading("Mengecek URL Phising"))
+
+        try:
+            data = tool_web_phising_checker(url)
+            if data:
+                status = "⚠️ Terdeteksi PHISING!" if data.get('is_phishing') else "✅ Aman"
+                update.message.reply_text(
+                    format_success(
+                        "𝐂𝐄𝐊 𝐋𝐈𝐍𝐊 𝐏𝐇𝐈𝐒𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🔗 URL: {url[:60]}...\n"
+                        f"📌 Status: {status}\n"
+                        f"🛡️ Malware: {'⚠️ Terdeteksi' if data.get('contains_malware') else '✅ Aman'}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text("❌ Gagal mengecek URL")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_web_recon(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐖𝐄𝐁 𝐑𝐄𝐂𝐎𝐍𝐍𝐀𝐈𝐒𝐒𝐀𝐍𝐂𝐄\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/webrecon google.com"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        domain = args[0].strip().replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
+        update.message.reply_text(format_loading("Melakukan Web Reconnaissance"))
+
+        try:
+            data = tool_web_recon(domain)
+            if data:
+                update.message.reply_text(
+                    format_success(
+                        "𝐖𝐄𝐁 𝐑𝐄𝐂𝐎𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🌍 Domain: `{data['domain']}`\n"
+                        f"📌 IP: `{data['ip']}`\n"
+                        f"🔍 Subdomain: {data['total_subs']} ditemukan\n"
+                        f"🔌 Port terbuka: {', '.join(map(str, data['open_ports'])) if data['open_ports'] else 'Tidak ada'}\n\n"
+                        f"📋 *Subdomain sample:*\n" + "\n".join(data['subdomains'][:10]) if data['subdomains'] else "Tidak ada subdomain"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(f"❌ Gagal reconnaissance untuk `{domain}`")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_lapor_bug(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐋𝐀𝐏𝐎𝐑 𝐁𝐔𝐆\n"
+                f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+                f"𝙇𝙖𝙥𝙤𝙧𝙠𝙖𝙣 𝙗𝙪𝙜 𝙠𝙚 𝙖𝙙𝙢𝙞𝙣:\n"
+                f"https://wa.me/+6283832110509"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    def cmd_foto_tourl(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐎𝐓𝐎/𝐕𝐈𝐃𝐄𝐎 𝐓𝐎 𝐔𝐑𝐋\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"Kirim file foto/video (max 200MB)"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        context.user_data['state'] = 'upload_photo'
+
+    def cmd_file_tourl(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐈𝐋𝐄 𝐓𝐎 𝐔𝐑𝐋\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"Kirim file (max 10GB)"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        context.user_data['state'] = 'upload_file'
+
+    def cmd_kill_bottele(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐊𝐈𝐋𝐋 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/killbottele 1234567890:ABCdef"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        token = args[0].strip()
+        update.message.reply_text(format_loading("Membunuh Bot Telegram"))
+
+        try:
+            url = f'https://api.telegram.org/bot{token}/logOut'
+            resp = requests.get(url, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('ok'):
+                    update.message.reply_text(
+                        format_success(
+                            "𝐊𝐈𝐋𝐋 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                            f"✅ Bot berhasil dimatikan!"
+                        ),
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                else:
+                    update.message.reply_text("❌ Token bot tidak valid")
+            else:
+                update.message.reply_text("❌ Gagal mematikan bot")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_cek_infobot(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐈𝐍𝐅𝐎 𝐁𝐎𝐓\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/cekinfobot 1234567890:ABCdef"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        token = args[0].strip()
+        update.message.reply_text(format_loading("Mengambil Info Bot"))
+
+        try:
+            url = f'https://api.telegram.org/bot{token}/getMe'
+            resp = requests.get(url, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('ok'):
+                    result = data.get('result', {})
+                    update.message.reply_text(
+                        format_success(
+                            "𝐈𝐍𝐅𝐎 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                            f"🆔 ID: `{result.get('id', 'N/A')}`\n"
+                            f"👤 Nama: {result.get('first_name', 'N/A')}\n"
+                            f"🔗 Username: @{result.get('username', 'N/A')}"
+                        ),
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                else:
+                    update.message.reply_text("❌ Token bot tidak valid")
+            else:
+                update.message.reply_text("❌ Gagal mengambil info bot")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_shortener_url(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐋𝐈𝐍𝐊 𝐒𝐇𝐎𝐑𝐓𝐄𝐍𝐄𝐑\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/shortenerurl https://www.tokopedia.com"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        url = args[0].strip()
+        if not url.startswith('http'):
+            url = 'https://' + url
+
+        update.message.reply_text(format_loading("Memendekkan URL"))
+
+        try:
+            result = tool_link_shortener(url)
+            if result:
+                update.message.reply_text(
+                    format_success(
+                        "𝐋𝐈𝐍𝐊 𝐒𝐇𝐎𝐑𝐓𝐄𝐍𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🔗 URL Pendek: {result}\n"
+                        f"📎 URL Asli: {url[:60]}..."
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text("❌ Gagal memendekkan URL")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_hack_status_wa(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐇𝐀𝐂𝐊 𝐒𝐓𝐀𝐓𝐔𝐒 𝐖𝐀\n"
+                f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+                f"𝙋𝙖𝙨𝙩𝙞𝙠𝙖𝙣 𝙒𝙝𝙖𝙩𝙨𝘼𝙥𝙥 𝙩𝙚𝙧𝙞𝙣𝙨𝙩𝙖𝙡𝙡\n"
+                f"𝙙𝙖𝙣 𝙨𝙪𝙙𝙖𝙝 𝙢𝙚𝙢𝙗𝙪𝙠𝙖 𝙨𝙩𝙖𝙩𝙪𝙨.\n\n"
+                f"𝙃𝙖𝙨𝙞𝙡 𝙖𝙠𝙖𝙣 𝙙𝙞𝙨𝙞𝙢𝙥𝙖𝙣 𝙙𝙞 𝙛𝙤𝙡𝙙𝙚𝙧 Status_WA"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    def cmd_cek_resi(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args or len(args) < 2:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐑𝐄𝐒𝐈\n"
+                    f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
+                    f"/cekresi kurir nomorresi\n\n"
+                    f"Kurir: jne, jnt, sicepat, anteraja, pos, tiki, shopee\n"
+                    f"Contoh: /cekresi jne 1234567890"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        courier = args[0].strip().lower()
+        awb = args[1].strip()
+
+        update.message.reply_text(format_loading("Mencari Resi"))
+
+        try:
+            data = tool_cek_resi(courier, awb)
+            if data:
+                history = data.get('history', [])
+                history_text = ""
+                for h in history[-5:]:
+                    history_text += f"📅 {h.get('date', '')} → {h.get('desc', '')}\n"
+
+                update.message.reply_text(
+                    format_success(
+                        "𝐂𝐄𝐊 𝐑𝐄𝐒𝐈 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"📮 Resi: `{data.get('awb', 'N/A')}`\n"
+                        f"📦 Kurir: {data.get('courier', 'N/A').upper()}\n"
+                        f"📌 Status: {data.get('status', 'N/A')}\n\n"
+                        f"📋 *Riwayat:*\n{history_text or 'Belum ada riwayat'}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(f"❌ Resi `{awb}` tidak ditemukan")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+
+    def cmd_get_id_chat(self, update, context):
+        user_id = str(update.effective_user.id)
+        if not self.is_verified(user_id):
+            update.message.reply_text("❌ *Akses Ditolak!*")
+            return
+
+        args = context.args
+        if not args:
+            update.message.reply_photo(
+                photo=IMAGE,
+                caption=(
+                    f"𝙏𝙊𝙊𝙇𝙎: 𝐆𝐄𝐓 𝐈𝐃 𝐂𝐇𝐀𝐓\n"
+                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                    f"/getidchatbot 1234567890:ABCdef"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        token = args[0].strip()
+        update.message.reply_text(format_loading("Mengambil ID Chat Bot"))
+
+        try:
+            url = f'https://api.telegram.org/bot{token}/getMe'
+            resp = requests.get(url, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('ok'):
+                    result = data.get('result', {})
+                    update.message.reply_text(
+                        format_success(
+                            "𝐆𝐄𝐓 𝐈𝐃 𝐂𝐇𝐀𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                            f"🆔 Bot ID: `{result.get('id', 'N/A')}`\n"
+                            f"👤 Nama: {result.get('first_name', 'N/A')}\n"
+                            f"🔗 Username: @{result.get('username', 'N/A')}"
+                        ),
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                else:
+                    update.message.reply_text("❌ Token bot tidak valid")
+            else:
+                update.message.reply_text("❌ Gagal mengambil ID bot")
+        except Exception as e:
+            update.message.reply_text(format_error(str(e)))
+            
 from flask import Flask, request
 import asyncio
 import json
