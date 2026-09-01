@@ -8154,6 +8154,10 @@ class MikasaBot:
 from flask import Flask, request
 import asyncio
 import json
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 BOT_TOKEN = "8685515038:AAEW_N4J98oYLIMpP71Fc9W99ha7nR4mJAs"
@@ -8162,6 +8166,12 @@ BOT_TOKEN = "8685515038:AAEW_N4J98oYLIMpP71Fc9W99ha7nR4mJAs"
 def webhook():
     try:
         data = request.get_json()
+        if not data:
+            logger.error("No JSON data")
+            return {"status": "error"}, 400
+        
+        logger.info(f"Webhook: {data.get('message', {}).get('text', 'no text')}")
+        
         update = Update.de_json(data, None)
         
         bot = MikasaBot(BOT_TOKEN)
@@ -8203,13 +8213,24 @@ def webhook():
         application.add_handler(CommandHandler("cekresi", bot.cmd_cek_resi))
         application.add_handler(CommandHandler("getidchatbot", bot.cmd_get_id_chat))
         application.add_handler(CallbackQueryHandler(bot.button_callback))
-        application.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO | filters.VIDEO, bot.handle_document))
+        application.add_handler(
+            MessageHandler(
+                filters.DOCUMENT | filters.PHOTO | filters.VIDEO,
+                bot.handle_document
+            )
+        )
         
-        asyncio.run(application.process_update(update))
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(application.process_update(update))
+        loop.close()
         
+        logger.info("Update processed")
         return {"status": "ok"}, 200
+        
     except Exception as e:
-        return {"status": "error", "error": str(e)}, 200
+        logger.error(f"Webhook error: {e}")
+        return {"status": "error", "error": str(e)}, 500
 
 @app.route("/")
 def index():
