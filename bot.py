@@ -6519,6 +6519,20 @@ class MikasaBot:
     except:
         pass
 
+ def send_photo(self, chat_id, photo_url, caption=None, reply_markup=None):
+    url = f"https://api.telegram.org/bot{self.token}/sendPhoto"
+    payload = {"chat_id": chat_id, "photo": photo_url}
+    if caption:
+        payload["caption"] = caption
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        if resp.status_code != 200:
+            self.send_text(chat_id, caption)
+    except:
+        self.send_text(chat_id, caption)
+
  def start_sync(self, chat_id, user_id, first_name):
     uid = get_uid()
     status, user_data = cek_uid(uid)
