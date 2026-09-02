@@ -8151,168 +8151,161 @@ class MikasaBot:
         except Exception as e:
             update.message.reply_text(format_error(str(e)))
             
-from flask import Flask, request
-import asyncio
+from flask import Flask, request, jsonify
+import requests
 import json
 import logging
+from bot import MikasaBot
+
+app = Flask(__name__)
+BOT_TOKEN = "8685515038:AAEW_N4J98oYLIMpP71Fc9W99ha7nR4mJAs"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-BOT_TOKEN = "8685515038:AAEW_N4J98oYLIMpP71Fc9W99ha7nR4mJAs"
+bot_instance = MikasaBot(BOT_TOKEN)
+
+def send_message(chat_id, text, parse_mode=None, reply_markup=None):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    return requests.post(url, json=payload, timeout=10)
+
+def edit_message(chat_id, message_id, text, parse_mode=None, reply_markup=None):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageText"
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text
+    }
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    return requests.post(url, json=payload, timeout=10)
+
+def answer_callback(callback_id):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/answerCallbackQuery"
+    return requests.post(url, json={"callback_query_id": callback_id}, timeout=10)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
         data = request.get_json()
         if not data:
-            logger.error("No JSON data")
-            return {"status": "error"}, 400
-        
-        logger.info(f"Webhook: {data.get('message', {}).get('text', 'no text')}")
-        
+            return jsonify({"status": "error"}), 400
+
+        logger.info(f"Webhook received: {data}")
+
         if "message" in data:
-            chat_id = data["message"]["chat"]["id"]
-            text = data["message"].get("text", "")
-            
-            bot = MikasaBot(BOT_TOKEN)
-            
-            update = Update.de_json(data, None)
-            context = type('Context', (), {
-                'args': [],
-                'user_data': {},
-                'bot': type('Bot', (), {
-                    'send_message': lambda self, chat_id, text, parse_mode=None: requests.post(
-                        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                        json={"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
-                    )
-                })()
-            })()
-            
-            if text and text.startswith("/"):
-                parts = text.split()
-                command = parts[0].lower()
-                context.args = parts[1:] if len(parts) > 1 else []
-            
+            message = data["message"]
+            chat_id = str(message["chat"]["id"])
+            text = message.get("text", "")
+            user_id = str(message["from"]["id"])
+            first_name = message["from"].get("first_name", "User")
+
+            # Handle /start command
             if text == "/start":
-                bot.start(update, context)
+                # Panggil method start secara synchronous
+                bot_instance.start_sync(chat_id, user_id, first_name)
+                
+            # Handle /register
             elif text.startswith("/register"):
-                bot.register(update, context)
-            elif text.startswith("/verify"):
-                bot.verify(update, context)
+                parts = text.split()
+                if len(parts) > 1:
+                    nama = " ".join(parts[1:])
+                    bot_instance.register_sync(chat_id, user_id, nama)
+                else:
+                    send_message(chat_id, "❌ Format: /register nama_anda")
+            
+            # Handle /spamotp
             elif text.startswith("/spamotp"):
-                bot.cmd_spam_otp(update, context)
-            elif text.startswith("/spamcall"):
-                bot.cmd_spam_call(update, context)
-            elif text.startswith("/spampair"):
-                bot.cmd_spam_pair(update, context)
-            elif text.startswith("/spamrepwa"):
-                bot.cmd_spam_repwa(update, context)
-            elif text.startswith("/spamngl"):
-                bot.cmd_spam_ngl(update, context)
-            elif text == "/osint":
-                bot.cmd_osint(update, context)
-            elif text.startswith("/osintnomor"):
-                bot.cmd_osint_nomor(update, context)
-            elif text.startswith("/osintusername"):
-                bot.cmd_osint_username(update, context)
-            elif text.startswith("/osintip"):
-                bot.cmd_osint_ip(update, context)
-            elif text.startswith("/osintdomain"):
-                bot.cmd_osint_domain(update, context)
-            elif text.startswith("/iptracker"):
-                bot.cmd_ip_tracker(update, context)
-            elif text.startswith("/portscan"):
-                bot.cmd_port_scan(update, context)
-            elif text.startswith("/nikparse"):
-                bot.cmd_nik_parse(update, context)
-            elif text.startswith("/cekkodepos"):
-                bot.cmd_cek_kodepos(update, context)
-            elif text.startswith("/ceknpsn"):
-                bot.cmd_cek_npsn(update, context)
-            elif text.startswith("/ffuid"):
-                bot.cmd_ff_uid(update, context)
-            elif text.startswith("/cekroblox"):
-                bot.cmd_cek_roblox(update, context)
-            elif text.startswith("/spamgmail"):
-                bot.cmd_spam_gmail(update, context)
-            elif text.startswith("/cekdataguru"):
-                bot.cmd_cek_dataguru(update, context)
-            elif text.startswith("/spambottele"):
-                bot.cmd_spam_bottele(update, context)
-            elif text.startswith("/cekimei"):
-                bot.cmd_cek_imei(update, context)
-            elif text.startswith("/cekphising"):
-                bot.cmd_cek_phising(update, context)
-            elif text.startswith("/webrecon"):
-                bot.cmd_web_recon(update, context)
-            elif text == "/laporbug":
-                bot.cmd_lapor_bug(update, context)
-            elif text == "/fototourl":
-                bot.cmd_foto_tourl(update, context)
-            elif text == "/filetourl":
-                bot.cmd_file_tourl(update, context)
-            elif text.startswith("/killbottele"):
-                bot.cmd_kill_bottele(update, context)
-            elif text.startswith("/cekinfobot"):
-                bot.cmd_cek_infobot(update, context)
-            elif text.startswith("/shortenerurl"):
-                bot.cmd_shortener_url(update, context)
-            elif text == "/hackstatuswa":
-                bot.cmd_hack_status_wa(update, context)
-            elif text.startswith("/cekresi"):
-                bot.cmd_cek_resi(update, context)
-            elif text.startswith("/getidchatbot"):
-                bot.cmd_get_id_chat(update, context)
-            elif text == "/menuall":
-                menu = (
-                    "📋 *SEMUA MENU BOT*\n\n"
-                    "/spamotp - Spam OTP\n"
-                    "/spamcall - Spam Call\n"
-                    "/spampair - Spam Pairing\n"
-                    "/spamrepwa - Spam Report WA\n"
-                    "/spamngl - Spam NGL\n"
-                    "/spamgmail - Spam Email\n"
-                    "/osint - OSINT Tools\n"
-                    "/osintnomor - OSINT Nomor\n"
-                    "/osintusername - OSINT Username\n"
-                    "/osintip - OSINT IP\n"
-                    "/osintdomain - OSINT Domain\n"
-                    "/iptracker - IP Tracker\n"
-                    "/portscan - Port Scanner\n"
-                    "/nikparse - NIK Parse\n"
-                    "/cekkodepos - Cek Kode Pos\n"
-                    "/ceknpsn - Cek NPSN\n"
-                    "/ffuid - FF UID Checker\n"
-                    "/cekroblox - Roblox Checker\n"
-                    "/cekdataguru - Cek Data Guru\n"
-                    "/cekimei - Cek IMEI\n"
-                    "/cekphising - Cek Link Phising\n"
-                    "/webrecon - Web Recon\n"
-                    "/fototourl - Foto/File to URL\n"
-                    "/shortenerurl - Shortener URL\n"
-                    "/cekresi - Cek Resi\n"
-                    "/killbottele - Kill Bot Telegram\n"
-                    "/cekinfobot - Cek Info Bot\n"
-                    "/getidchatbot - Get ID Chat\n"
-                    "/hackstatuswa - Hack Status WA\n"
-                    "/spambottele - Spam Bot Telegram\n"
-                    "/laporbug - Lapor Bug\n"
-                    "/filetourl - File to URL"
+                parts = text.split()
+                if len(parts) > 1:
+                    nomor = parts[1]
+                    bot_instance.spam_otp_sync(chat_id, nomor)
+                else:
+                    send_message(chat_id, "❌ Format: /spamotp 628xxxxxxxxx")
+            
+            # /spamcall, /spampair, /osint, dll.
+            else:
+                send_message(chat_id, f"❌ Command tidak dikenal: {text}")
+
+        elif "callback_query" in data:
+            query = data["callback_query"]
+            callback_id = query["id"]
+            chat_id = str(query["message"]["chat"]["id"])
+            message_id = query["message"]["message_id"]
+            data_callback = query["data"]
+            user_id = str(query["from"]["id"])
+            
+            # Jawab callback
+            answer_callback(callback_id)
+            
+            # Proses berdasarkan data callback
+            if data_callback == "menu_spam":
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "⬅️ Kembali", "callback_data": "menu_back"}]
+                    ]
+                }
+                caption = (
+                    f" KATEGORI SPAM\n\n"
+                    f"╭───〔 1 〕───╮\n"
+                    f"│ 𝙎𝙋𝘼𝙈 𝙈𝙀𝙉𝙐 :\n"
+                    f"│ /spamotp\n"
+                    f"│ /spamcall\n"
+                    f"│ /spampair\n"
+                    f"│ /spamrepwa\n"
+                    f"│ /spamngl\n"
+                    f"│ /spamgmail\n"
+                    f"╰────────────────────────────╯\n\n"
+                    f"📌 *Cara penggunaan:*\n"
+                    f"Ketik command di atas dengan nomor target"
                 )
-                update.message.reply_text(menu, parse_mode="Markdown")
-        
-        logger.info("Update processed")
-        return {"status": "ok"}, 200
-        
+                edit_message(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
+            
+            elif data_callback == "menu_back":
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "〔 1 〕𝐒𝐏𝐀𝐌 𝐌𝐄𝐍𝐔", "callback_data": "menu_spam"}],
+                        [{"text": "〔 2 〕𝐎𝐒𝐈𝐍𝐓 & 𝐓𝐀𝐑𝐂𝐊𝐄𝐑", "callback_data": "menu_osint"}],
+                        [{"text": "〔 3 〕𝐔𝐓𝐈𝐋𝐈𝐓𝐘", "callback_data": "menu_utility"}],
+                        [{"text": "〔 4 〕𝐌𝐄𝐍𝐔 𝐀𝐋𝐋", "callback_data": "menu_all"}],
+                        [{"text": "〔 5 〕𝐂𝐋𝐎𝐒𝐄", "callback_data": "menu_close"}],
+                    ]
+                }
+                caption = (
+                    f"𝙈𝙄𝙆𝘼𝙎𝘼 𝘽𝙊𝙏 𝙈𝘿\n"
+                    f"𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+                    f"𝙿𝚒𝚕𝚒𝚑 𝚔𝚊𝚝𝚎𝚐𝚘𝚛𝚒 𝚍𝚒 𝚋𝚊𝚠𝚊𝚑 👇"
+                )
+                edit_message(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
+            
+            elif data_callback == "menu_close":
+                # Delete message
+                url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteMessage"
+                requests.post(url, json={"chat_id": chat_id, "message_id": message_id}, timeout=10)
+
+        return jsonify({"status": "ok"}), 200
+
     except Exception as e:
         logger.error(f"Webhook error: {e}")
-        return {"status": "error", "error": str(e)}, 500
+        return jsonify({"error": str(e)}), 500
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def index():
     return "Bot is running!", 200
 
-if __name__ == "__main__":
-    app.run()
+@app.route("/setwebhook", methods=["GET"])
+def set_webhook():
+    try:
+        webhook_url = "https://ngapain-hayoo1257-ngntipngntip4829asubabngentlut.vercel.app/webhook"
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook?url={webhook_url}"
+        resp = requests.get(url)
+        return jsonify(resp.json())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
