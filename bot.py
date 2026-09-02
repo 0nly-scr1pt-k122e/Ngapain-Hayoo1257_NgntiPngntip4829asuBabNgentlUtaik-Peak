@@ -6621,7 +6621,39 @@ class MikasaBot:
     except:
         pass
 
- def spam_otp_sync(self, chat_id, nomor, stop_flag=None, chat_id_flag=None):
+ def spam_otp_sync(self, chat_id, nomor=None, stop_flag=None, chat_id_flag=None):
+    # ===== JIKA TIDAK ADA NOMOR (TAMPILKAN PANDUAN + TOMBOL BATAL) =====
+    if nomor is None:
+        caption = (
+            f"📱 *SPAM OTP*\n\n"
+            f"Silahkan kirim nomor target dengan format:\n"
+            f"`628xxxxxxxxx`\n\n"
+            f"Contoh: `6281234567890`"
+        )
+        
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "❌ BATAL", "callback_data": "batal_spam"}]
+            ]
+        }
+        
+        self.send_text(chat_id, caption, "Markdown")
+        
+        # Kirim tombol terpisah
+        url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": "Klik tombol di bawah untuk membatalkan:",
+            "reply_markup": json.dumps(keyboard)
+        }
+        try:
+            requests.post(url, json=payload, timeout=10)
+        except:
+            pass
+        return
+    
+    # ===== JIKA ADA NOMOR =====
+    # Normalisasi nomor
     if nomor.startswith('0'):
         nomor = nomor
     elif nomor.startswith('62'):
@@ -6629,11 +6661,18 @@ class MikasaBot:
     elif nomor.startswith('+62'):
         nomor = '0' + nomor[3:]
     
-    self.send_photo(chat_id, SPAM_OTP_IMG, "⏱️⏳ Mohon bersabar Sedang mengirim Spam OTP...")
+    # ===== KIRIM LOADING (TEKS DOANG, TANPA GAMBAR) =====
+    self.send_text(chat_id, "⏱️⏳ Mohon bersabar Sedang mengirim Spam OTP...")
     
+    # ===== JALANKAN SPAM =====
     success, failed = run_spam_otp(nomor)
-    total = success + failed
     
+    # ===== CEK STOP FLAG =====
+    if stop_flag and stop_flag.get(chat_id_flag, False):
+        self.send_text(chat_id, "🛑 *Proses Spam Dihentikan!*", "Markdown")
+        return
+    
+    # ===== HASIL AKHIR (TEKS + TOMBOL KEMBALI) =====
     caption = (
         f"╭─────〔 ✓ 〕─────╮\n"
         f"│𝐒𝐏𝐀𝐌 𝐎𝐓𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈\n"
@@ -6651,7 +6690,19 @@ class MikasaBot:
         ]
     }
     
-    self.send_photo(chat_id, get_image(), caption, json.dumps(keyboard))
+    # Kirim hasil + tombol
+    self.send_text(chat_id, caption, "Markdown")
+    
+    url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": "Klik tombol di bawah untuk kembali ke menu:",
+        "reply_markup": json.dumps(keyboard)
+    }
+    try:
+        requests.post(url, json=payload, timeout=10)
+    except:
+        pass
 
  def spam_call_sync(self, chat_id, nomor):
     self.send_text(chat_id, "⏱️⏳ Mengirim Spam Call...")
