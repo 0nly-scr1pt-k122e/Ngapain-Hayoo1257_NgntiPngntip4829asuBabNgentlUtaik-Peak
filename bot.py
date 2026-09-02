@@ -5923,7 +5923,7 @@ def run_spam_otp(nomor):
                 failed += 1
         except:
             failed += 1
-        time.sleep(0.2)
+        time.sleep(5)
 
     return success, failed
 
