@@ -6509,7 +6509,7 @@ class MikasaBot:
         self.users = load_users()
         self.user_data = {}
 
- def start_sync(self, chat_id, user_id, first_name, name):
+ def start_sync(self, chat_id, user_id, first_name):
     uid = get_uid()
     status, user_data = cek_uid(uid)
     
@@ -6527,7 +6527,7 @@ class MikasaBot:
             self.send_text(chat_id, f"⏳ *Akun Belum Aktif*\n\n👤 Nama: {user_data_local.get('nama', 'User')}\n\nMenunggu verifikasi dari admin.")
             return
     
-    self.send_text(chat_id, f"🔐 *REGISTRASI DIPERLUKAN*\n\nGunakan: `/register nama_anda`\nContoh: `/register {name}`")
+    self.send_text(chat_id, f"🔐 *REGISTRASI DIPERLUKAN*\n\nGunakan: `/register nama_anda`\nContoh: `/register Yanto`")
 
  def send_welcome_sync(self, chat_id, name):
     keyboard = {
