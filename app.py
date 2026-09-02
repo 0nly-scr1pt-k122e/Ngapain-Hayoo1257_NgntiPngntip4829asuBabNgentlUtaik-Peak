@@ -8,11 +8,15 @@ from bot import MikasaBot
 
 app = Flask(__name__)
 BOT_TOKEN = "8685515038:AAEW_N4J98oYLIMpP71Fc9W99ha7nR4mJAs"
+ADMIN_ID = 8873967955
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 bot_instance = MikasaBot(BOT_TOKEN)
+
+# ===================== VARIABEL =====================
+stop_spam_flag = {}
 
 # ===================== HELPERS =====================
 
@@ -28,9 +32,9 @@ def send_message(chat_id, text, parse_mode=None, reply_markup=None):
     except:
         return None
 
-def edit_message(chat_id, message_id, text, parse_mode=None, reply_markup=None):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageText"
-    payload = {"chat_id": chat_id, "message_id": message_id, "text": text}
+def edit_message_caption(chat_id, message_id, caption, parse_mode=None, reply_markup=None):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageCaption"
+    payload = {"chat_id": chat_id, "message_id": message_id, "caption": caption}
     if parse_mode:
         payload["parse_mode"] = parse_mode
     if reply_markup:
@@ -82,8 +86,41 @@ def webhook():
                 cmd = parts[0].lower()
                 args = parts[1:] if len(parts) > 1 else []
                 
+                # ===== STOP BOT (HANYA ADMIN) =====
+                if cmd == "/stopbot" or cmd == "/matibot":
+                    if int(user_id) == ADMIN_ID:
+                        bot_instance.send_text(chat_id, "🛑 *Bot sedang dimatikan oleh Admin...*", "Markdown")
+                        url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook"
+                        requests.get(url)
+                        return
+                    else:
+                        bot_instance.send_text(chat_id, "❌ *Akses Ditolak!* Hanya Admin yang bisa mematikan bot.", "Markdown")
+                
+                # ===== CEK USER TERDAFTAR (HANYA ADMIN) =====
+                elif cmd == "/cekuser" or cmd == "/users":
+                    if int(user_id) == ADMIN_ID:
+                        users = bot_instance.users
+                        if users:
+                            msg_text = "📋 *DAFTAR USER TERDAFTAR*\n\n"
+                            for uid, data_user in users.items():
+                                status = "✅ Aktif" if data_user.get('status') == 'active' else "⏳ Pending"
+                                msg_text += f"🆔 `{uid}`\n"
+                                msg_text += f"👤 {data_user.get('nama', 'Unknown')}\n"
+                                msg_text += f"📌 Status: {status}\n"
+                                msg_text += f"─────────────────\n"
+                            bot_instance.send_text(chat_id, msg_text, "Markdown")
+                        else:
+                            bot_instance.send_text(chat_id, "📋 *Belum ada user yang terdaftar.*", "Markdown")
+                    else:
+                        bot_instance.send_text(chat_id, "❌ *Akses Ditolak!* Hanya Admin yang bisa melihat user.", "Markdown")
+                
+                # ===== STOP SPAM =====
+                elif cmd == "/berhenti" or cmd == "/stop":
+                    stop_spam_flag[chat_id] = True
+                    bot_instance.send_text(chat_id, "🛑 *Proses Spam Dihentikan!*", "Markdown")
+                
                 # ===== REGISTER & VERIFY =====
-                if cmd == "/start":
+                elif cmd == "/start":
                     bot_instance.start_sync(chat_id, user_id, first_name)
                 
                 elif cmd == "/register":
@@ -101,36 +138,42 @@ def webhook():
                 # ===== SPAM COMMANDS =====
                 elif cmd == "/spamotp":
                     if args:
-                        bot_instance.spam_otp_sync(chat_id, args[0])
+                        stop_spam_flag[chat_id] = False
+                        bot_instance.spam_otp_sync(chat_id, args[0], stop_spam_flag, chat_id)
                     else:
                         bot_instance.send_text(chat_id, "❌ Format: /spamotp 628xxxxxxxxx")
                 
                 elif cmd == "/spamcall":
                     if args:
+                        stop_spam_flag[chat_id] = False
                         bot_instance.spam_call_sync(chat_id, args[0])
                     else:
                         bot_instance.send_text(chat_id, "❌ Format: /spamcall 62xxxxxxxxx")
                 
                 elif cmd == "/spampair":
                     if args:
+                        stop_spam_flag[chat_id] = False
                         bot_instance.spam_pair_sync(chat_id, args[0])
                     else:
                         bot_instance.send_text(chat_id, "❌ Format: /spampair 628xxxxxxxxx")
                 
                 elif cmd == "/spamrepwa":
                     if args:
+                        stop_spam_flag[chat_id] = False
                         bot_instance.spam_repwa_sync(chat_id, args[0])
                     else:
                         bot_instance.send_text(chat_id, "❌ Format: /spamrepwa +628xxxxxxxxx")
                 
                 elif cmd == "/spamngl":
                     if args:
+                        stop_spam_flag[chat_id] = False
                         bot_instance.spam_ngl_sync(chat_id, args[0])
                     else:
                         bot_instance.send_text(chat_id, "❌ Format: /spamngl username")
                 
                 elif cmd == "/spamgmail":
                     if args:
+                        stop_spam_flag[chat_id] = False
                         target_email = args[0]
                         custom_message = " ".join(args[1:]) if len(args) > 1 else None
                         bot_instance.spam_gmail_sync(chat_id, target_email, custom_message)
@@ -311,11 +354,13 @@ def webhook():
                     f"│ /spamrepwa\n"
                     f"│ /spamngl\n"
                     f"│ /spamgmail\n"
+                    f"│ /berhenti\n"
                     f"╰────────────────────────────╯\n\n"
                     f"📌 *Cara penggunaan:*\n"
-                    f"Ketik command di atas dengan nomor target"
+                    f"Ketik command di atas dengan nomor target\n"
+                    f"Gunakan /berhenti untuk menghentikan proses spam"
                 )
-                edit_message(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
+                edit_message_caption(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
             
             elif data_callback == "menu_osint":
                 keyboard = {
@@ -338,7 +383,7 @@ def webhook():
                     f"📌 *Cara penggunaan:*\n"
                     f"Ketik command di atas dengan target"
                 )
-                edit_message(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
+                edit_message_caption(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
             
             elif data_callback == "menu_utility":
                 keyboard = {
@@ -366,7 +411,7 @@ def webhook():
                     f"📌 *Cara penggunaan:*\n"
                     f"Ketik command di atas dengan target"
                 )
-                edit_message(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
+                edit_message_caption(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
             
             elif data_callback == "menu_all":
                 keyboard = {
@@ -406,11 +451,13 @@ def webhook():
                     f"│ /hackstatuswa\n"
                     f"│ /cekresi\n"
                     f"│ /getidchatbot\n"
+                    f"│ /berhenti\n"
                     f"╰────────────────────────────╯\n\n"
                     f"📌 *Cara penggunaan:*\n"
-                    f"Ketik command di atas dengan format yang sesuai"
+                    f"Ketik command di atas dengan format yang sesuai\n"
+                    f"Gunakan /berhenti untuk menghentikan proses spam"
                 )
-                edit_message(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
+                edit_message_caption(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
             
             elif data_callback == "menu_back":
                 keyboard = {
@@ -427,7 +474,7 @@ def webhook():
                     f"𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐑𝐮𝐥𝐥𝐳𝐳𝐳𝟎𝟔\n\n"
                     f"𝙿𝚒𝚕𝚒𝚑 𝚔𝚊𝚝𝚎𝚐𝚘𝚛𝚒 𝚍𝚒 𝚋𝚊𝚠𝚊𝚑 👇"
                 )
-                edit_message(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
+                edit_message_caption(chat_id, message_id, caption, "Markdown", json.dumps(keyboard))
             
             elif data_callback == "menu_close":
                 delete_message(chat_id, message_id)
