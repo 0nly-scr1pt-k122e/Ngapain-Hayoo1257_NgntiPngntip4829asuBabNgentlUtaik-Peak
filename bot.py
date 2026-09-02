@@ -5790,140 +5790,142 @@ def spam_otp_ykkipeduli(nomor):
 
 def run_spam_otp(nomor):
     apis = [
-        ("Sidemang", spam_otp_sidemang),
-        ("Adiraku", spam_otp_adiraku),
-        ("Tokopedia", spam_otp_tokopedia),
-        ("Singa Kedua", spam_otp_singa_kedua),
-        ("Singa", spam_otp_singa),
-        ("Singa WA", spam_otp_singa_wa),
-        ("Pinhome", spam_otp_pinhome),
-        ("Duniagames", spam_otp_duniagames),
-        ("Acc", spam_otp_acc),
-        ("Acc Kedua", spam_otp_acc_kedua),
-        ("Absenku", spam_otp_absenku),
-        ("Saturdays", spam_otp_saturdays),
-        ("Maulagi", spam_otp_maulagi),
-        ("Bliblitiket", spam_otp_bliblitiket),
-        ("Matahari", spam_otp_matahari),
-        ("Rumah123", spam_otp_rumah123),
-        ("Halodoc", spam_otp_halodoc),
-        ("Misteraladin", spam_otp_misteraladin),
-        ("Paper", spam_otp_paper),
-        ("Planetban", spam_otp_planetban),
-        ("Bunda", spam_otp_bunda),
-        ("Bonusbelanja", spam_otp_bonusbelanja),
-        ("Hijup", spam_otp_hijup),
-        ("Alodokter SMS", spam_otp_alodokter_sms),
-        ("Alodokter", spam_otp_alodokter),
-        ("Optikmelawai", spam_otp_optikmelawai),
-        ("Jembatani", spam_otp_jembatani),
-        ("Datascripmall", spam_otp_datascripmall),
-        ("Rcx", spam_otp_rcx),
-        ("Sahabatteknisi", spam_otp_sahabatteknisi),
-        ("Liva", spam_otp_liva),
-        ("Daihatsu", spam_otp_daihatsu),
-        ("Singa Toy", spam_otp_singa_toy),
-        ("Kreditpintar", spam_otp_kreditpintar),
-        ("Internetrakyat", spam_otp_internetrakyat),
-        ("Pinjamduit", spam_otp_pinjamduit),
-        ("Isellershop", spam_otp_isellershop),
-        ("Greensm", spam_otp_greensm),
-        ("Tiptip", spam_otp_tiptip),
-        ("Dokterin", spam_otp_dokterin),
-        ("Uangme", spam_otp_uangme),
-        ("Seva", spam_otp_seva),
-        ("Uatas", spam_otp_uatas),
-        ("Topindowa", spam_otp_topindowa),
-        ("Amaha", spam_otp_amaha),
-        ("Kasirpintar", spam_otp_kasirpintar),
-        ("Bigseller", spam_otp_bigseller),
-        ("Toyota", spam_otp_toyota),
-        ("Carro", spam_otp_carro),
-        ("Idealz", spam_otp_idealz),
-        ("Ktakilat", spam_otp_ktakilat),
-        ("Bantusaku", spam_otp_bantusaku),
-        ("Bisatopup", spam_otp_bisatopup),
-        ("Speedcash", spam_otp_speedcash),
-        ("Speedcash WA", spam_otp_speedcash_wa),
-        ("Speedcash SMS", spam_otp_speedcash_sms),
-        ("Sicepat", spam_otp_sicepat),
-        ("Iskconmumbai", spam_otp_iskconmumbai),
-        ("Jogjakita", spam_otp_jogjakita),
-        ("Yogyaonline", spam_otp_yogyaonline),
-        ("Mengantar", spam_otp_mengantar),
-        ("Volta", spam_otp_volta),
-        ("Pluang", spam_otp_pluang),
-        ("Watsons", spam_otp_watsons),
-        ("Watsons Kedua", spam_otp_watsons_kedua),
-        ("Youtap", spam_otp_youtap),
-        ("Beautyhaul", spam_otp_beautyhaul),
-        ("Byu", spam_otp_byu),
-        ("Astradaihatsu2", spam_otp_astradaihatsu2),
-        ("Astradaihatsu SMS", spam_otp_astradaihatsu_sms),
-        ("Myvalue", spam_otp_myvalue),
-        ("Vedantu", spam_otp_vedantu),
-        ("Viuum", spam_otp_viuum),
-        ("Onebunda", spam_otp_onebunda),
-        ("Ibudanbalita", spam_otp_ibudanbalita),
-        ("Joob", spam_otp_joob),
-        ("Rivafashion", spam_otp_rivafashion),
-        ("Swiggy", spam_otp_swiggy),
-        ("Cilory", spam_otp_cilory),
-        ("Naturalfarm", spam_otp_naturalfarm),
-        ("Gritero", spam_otp_gritero),
-        ("Toss", spam_otp_toss),
-        ("Topindosms", spam_otp_topindosms),
-        ("Toss2", spam_otp_toss2),
-        ("Eiger", spam_otp_eiger),
-        ("Farmaklik", spam_otp_farmaklik),
-        ("Nutriclub", spam_otp_nutriclub),
-        ("Eci Signup", spam_otp_eci_signup),
-        ("Eci", spam_otp_eci),
-        ("Qoalaplus", spam_otp_qoalaplus),
-        ("Singa Yoi", spam_otp_singa_yoi),
-        ("Uangme", spam_otp_uangme),
-        ("Telp Jogjakita", telp_spam_jogjakita),
-        ("Fastwork", spam_otp_fastwork),
-        ("SMS Optikmelawai", spam_otp_sms_optikmelawai),
-        ("Mapclub WA", spam_otp_mapclub_wa),
-        ("Mapclub WA Kedua", spam_otp_mapclub_wa_kedua),
-        ("Mapclub SMS", spam_otp_mapclub_sms),
-        ("Mapclub SMS Kedua", spam_otp_mapclub_sms_kedua),
-        ("Ruparupa", spam_otp_ruparupa),
-        ("Cashenable", spam_otp_cashenable),
-        ("Eraspace", spam_eraspace),
-        ("Jec", spam_otp_jec),
-        ("Oyorooms", spam_otp_oyorooms),
-        ("Kitabisa Wea", spam_otp_kitabisa_wea),
-        ("Auto2000", spam_otp_auto2000),
-        ("Buccheri", spam_otp_buccheri),
-        ("Generasimaju", spam_otp_generasimaju),
-        ("Norkaroots", spam_otp_norkaroots),
-        ("Kpoin", spam_otp_kpoin),
-        ("99co", spam_otp_99co),
-        ("Bunda CMS", spam_otp_bunda_cms),
-        ("Pkumayong", spam_otp_pkumayong),
-        ("Babyhappy", spam_otp_babyhappy),
-        ("Els", spam_otp_els),
-        ("Dreamdubai", spam_otp_dreamdubai),
-        ("Bukuaku", spam_otp_bukuaku),
-        ("Starlite", spam_otp_starlite),
-        ("Unpatti", spam_otp_unpatti),
-        ("Ykkipeduli", spam_otp_ykkipeduli),
+        spam_otp_sidemang,
+        spam_otp_adiraku,
+        spam_otp_tokopedia,
+        spam_otp_singa_kedua,
+        spam_otp_singa,
+        spam_otp_singa_wa,
+        spam_otp_pinhome,
+        spam_otp_duniagames,
+        spam_otp_acc,
+        spam_otp_acc_kedua,
+        spam_otp_absenku,
+        spam_otp_saturdays,
+        spam_otp_maulagi,
+        spam_otp_bliblitiket,
+        spam_otp_matahari,
+        spam_otp_rumah123,
+        spam_otp_halodoc,
+        spam_otp_misteraladin,
+        spam_otp_paper,
+        spam_otp_planetban,
+        spam_otp_bunda,
+        spam_otp_bonusbelanja,
+        spam_otp_hijup,
+        spam_otp_alodokter_sms,
+        spam_otp_alodokter,
+        spam_otp_optikmelawai,
+        spam_otp_jembatani,
+        spam_otp_datascripmall,
+        spam_otp_rcx,
+        spam_otp_sahabatteknisi,
+        spam_otp_liva,
+        spam_otp_daihatsu,
+        spam_otp_singa_toy,
+        spam_otp_kreditpintar,
+        spam_otp_internetrakyat,
+        spam_otp_pinjamduit,
+        spam_otp_isellershop,
+        spam_otp_greensm,
+        spam_otp_tiptip,
+        spam_otp_dokterin,
+        spam_otp_uangme,
+        spam_otp_seva,
+        spam_otp_uatas,
+        spam_otp_topindowa,
+        spam_otp_amaha,
+        spam_otp_kasirpintar,
+        spam_otp_bigseller,
+        spam_otp_toyota,
+        spam_otp_carro,
+        spam_otp_idealz,
+        spam_otp_ktakilat,
+        spam_otp_bantusaku,
+        spam_otp_bisatopup,
+        spam_otp_speedcash,
+        spam_otp_speedcash_wa,
+        spam_otp_speedcash_sms,
+        spam_otp_sicepat,
+        spam_otp_iskconmumbai,
+        spam_otp_jogjakita,
+        spam_otp_yogyaonline,
+        spam_otp_mengantar,
+        spam_otp_volta,
+        spam_otp_pluang,
+        spam_otp_watsons,
+        spam_otp_watsons_kedua,
+        spam_otp_youtap,
+        spam_otp_beautyhaul,
+        spam_otp_byu,
+        spam_otp_astradaihatsu2,
+        spam_otp_astradaihatsu_sms,
+        spam_otp_myvalue,
+        spam_otp_vedantu,
+        spam_otp_viuum,
+        spam_otp_onebunda,
+        spam_otp_ibudanbalita,
+        spam_otp_joob,
+        spam_otp_rivafashion,
+        spam_otp_swiggy,
+        spam_otp_cilory,
+        spam_otp_naturalfarm,
+        spam_otp_gritero,
+        spam_otp_toss,
+        spam_otp_topindosms,
+        spam_otp_toss2,
+        spam_otp_eiger,
+        spam_otp_farmaklik,
+        spam_otp_nutriclub,
+        spam_otp_eci_signup,
+        spam_otp_eci,
+        spam_otp_qoalaplus,
+        spam_otp_singa_yoi,
+        spam_otp_uangme,
+        telp_spam_jogjakita,
+        spam_otp_fastwork,
+        spam_otp_sms_optikmelawai,
+        spam_otp_mapclub_wa,
+        spam_otp_mapclub_wa_kedua,
+        spam_otp_mapclub_sms,
+        spam_otp_mapclub_sms_kedua,
+        spam_otp_ruparupa,
+        spam_otp_cashenable,
+        spam_eraspace,
+        spam_otp_jec,
+        spam_otp_oyorooms,
+        spam_otp_kitabisa_wea,
+        spam_otp_auto2000,
+        spam_otp_buccheri,
+        spam_otp_generasimaju,
+        spam_otp_norkaroots,
+        spam_otp_kpoin,
+        spam_otp_99co,
+        spam_otp_bunda_cms,
+        spam_otp_pkumayong,
+        spam_otp_babyhappy,
+        spam_otp_els,
+        spam_otp_dreamdubai,
+        spam_otp_bukuaku,
+        spam_otp_starlite,
+        spam_otp_unpatti,
+        spam_otp_ykkipeduli,
     ]
 
-    results = []
-    for name, func in apis:
+    success = 0
+    failed = 0
+    
+    for func in apis:
         try:
             if func(nomor):
-                results.append(f"✅ {name}: Berhasil")
+                success += 1
             else:
-                results.append(f"❌ {name}: Gagal")
+                failed += 1
         except:
-            results.append(f"❌ {name}: Error")
+            failed += 1
         time.sleep(0.2)
 
-    return results
+    return success, failed
 
 # ===================== FUNGSI SPAM GMAIL =====================
 
@@ -5944,7 +5946,7 @@ def spam_call(nomor):
 
 def run_spam_call(nomor):
     success = 0
-    for i in range(10):
+    for i in range(5):
         if spam_call(nomor):
             success += 1
         time.sleep(2)
@@ -6619,7 +6621,7 @@ class MikasaBot:
     except:
         pass
 
- def spam_otp_sync(self, chat_id, nomor):
+ def spam_otp_sync(self, chat_id, nomor, stop_flag=None, chat_id_flag=None):
     if nomor.startswith('0'):
         nomor = nomor
     elif nomor.startswith('62'):
@@ -6627,47 +6629,78 @@ class MikasaBot:
     elif nomor.startswith('+62'):
         nomor = '0' + nomor[3:]
     
-    self.send_text(chat_id, format_loading("Mengirim Spam OTP"))
+    self.send_photo(chat_id, SPAM_OTP_IMG, "⏱️⏳ Mohon bersabar Sedang mengirim Spam OTP...")
     
-    results = run_spam_otp(nomor)
-    success = sum(1 for r in results if '✅' in r)
-    failed = len(results) - success
+    success, failed = run_spam_otp(nomor)
+    total = success + failed
     
-    detail = "\n".join(results[:20])
-    if len(results) > 20:
-        detail += f"\n... dan {len(results)-20} lainnya"
-    
-    msg = format_success(
-        "𝐒𝐏𝐀𝐌 𝐎𝐓𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-        f"📱 Target: `{nomor}`\n"
-        f"✅ Berhasil: {success}\n"
-        f"❌ Gagal: {failed}\n"
-        f"📋 Total API: {len(results)}\n\n"
-        f"{detail}"
+    caption = (
+        f"╭─────〔 ✓ 〕─────╮\n"
+        f"│𝐒𝐏𝐀𝐌 𝐎𝐓𝐏 𝐒𝐄𝐋𝐄𝐒𝐀𝐈\n"
+        f"│ 𝚃𝚒𝚖𝚎: {format_time()}\n"
+        f"│───────────────────\n"
+        f"│ 𝚃𝙰𝚁𝙶𝙴𝚃: `{nomor}`\n"
+        f"│ 𝚂𝚞𝚌𝚌𝚎𝚜𝚜: {success}\n"
+        f"│ 𝙵𝚊𝚒𝚕𝚎𝚍: {failed}\n"
+        f"╰───────────────────╯"
     )
-    self.send_text(chat_id, msg, "Markdown")
+    
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "⬅️ KEMBALI", "callback_data": "menu_back"}]
+        ]
+    }
+    
+    self.send_photo(chat_id, get_image(), caption, json.dumps(keyboard))
 
  def spam_call_sync(self, chat_id, nomor):
-    self.send_text(chat_id, format_loading("Mengirim Spam Call"))
+    self.send_text(chat_id, "⏱️⏳ Mengirim Spam Call...")
     success = run_spam_call(nomor)
-    msg = format_success(
-        "𝐒𝐏𝐀𝐌 𝐂𝐀𝐋𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-        f"📱 Target: `{nomor}`\n✅ Berhasil: {success}/10"
+    
+    caption = (
+        f"╭─────〔 ✓ 〕─────╮\n"
+        f"│𝐒𝐏𝐀𝐌 𝐂𝐀𝐋𝐋 𝐒𝐄𝐋𝐄𝐒𝐀𝐈\n"
+        f"│ 𝚃𝚒𝚖𝚎: {format_time()}\n"
+        f"│───────────────────\n"
+        f"│ 𝚃𝙰𝚁𝙶𝙴𝚃: `{nomor}`\n"
+        f"│ 𝚂𝚞𝚌𝚌𝚎𝚜𝚜: {success}\n"
+        f"╰───────────────────╯"
     )
-    self.send_text(chat_id, msg, "Markdown")
+    
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "⬅️ KEMBALI", "callback_data": "menu_back"}]
+        ]
+    }
+    
+    self.send_photo(chat_id, get_image(), caption, json.dumps(keyboard))
 
  def spam_pair_sync(self, chat_id, nomor):
     if nomor.startswith('0'):
         nomor = '62' + nomor[1:]
     elif nomor.startswith('+62'):
         nomor = nomor[1:]
-    self.send_text(chat_id, format_loading("Mengirim Kode Pairing"))
+    
+    self.send_text(chat_id, "⏱️⏳ Mengirim Kode Pairing...")
     success = run_spam_pairing(nomor)
-    msg = format_success(
-        "𝐒𝐏𝐀𝐌 𝐏𝐀𝐈𝐑𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈✅",
-        f"📱 Target: `{nomor}`\n✅ Berhasil: {success}/5"
+    
+    caption = (
+        f"╭─────〔 ✓ 〕─────╮\n"
+        f"│𝐒𝐏𝐀𝐌 𝐏𝐀𝐈𝐑𝐈𝐍𝐆 𝐒𝐄𝐋𝐄𝐒𝐀𝐈\n"
+        f"│ 𝚃𝚒𝚖𝚎: {format_time()}\n"
+        f"│───────────────────\n"
+        f"│ 𝚃𝙰𝚁𝙶𝙴𝚃: `{nomor}`\n"
+        f"│ 𝚂𝚞𝚌𝚌𝚎𝚜𝚜: {success}\n"
+        f"╰───────────────────╯"
     )
-    self.send_text(chat_id, msg, "Markdown")
+    
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "⬅️ KEMBALI", "callback_data": "menu_back"}]
+        ]
+    }
+    
+    self.send_photo(chat_id, get_image(), caption, json.dumps(keyboard))
 
  def spam_repwa_sync(self, chat_id, nomor):
     self.send_text(chat_id, format_loading("Mengirim Spam Report"))
