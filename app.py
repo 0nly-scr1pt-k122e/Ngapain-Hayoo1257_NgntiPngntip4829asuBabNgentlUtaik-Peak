@@ -6509,6 +6509,16 @@ class MikasaBot:
         self.users = load_users()
         self.user_data = {}
 
+ def send_text(self, chat_id, text, parse_mode=None):
+    url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
+    try:
+        requests.post(url, json=payload, timeout=10)
+    except:
+        pass
+
  def start_sync(self, chat_id, user_id, first_name):
     uid = get_uid()
     status, user_data = cek_uid(uid)
