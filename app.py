@@ -6504,6 +6504,11 @@ def upload_to_catbox(file_path):
         return None
 
 class MikasaBot:
+ def __init__(self, token):
+        self.token = token
+        self.users = load_users()
+        self.user_data = {}
+
  def start_sync(self, chat_id, user_id, first_name, name):
     uid = get_uid()
     status, user_data = cek_uid(uid)
