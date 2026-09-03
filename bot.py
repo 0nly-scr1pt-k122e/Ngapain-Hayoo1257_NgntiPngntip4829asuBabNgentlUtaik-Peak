@@ -7522,4 +7522,3 @@ class MikasaBot:
     
     elif data == "menu_close":
         query.message.delete()
-# test 3 sept
